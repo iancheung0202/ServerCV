@@ -231,7 +231,8 @@ def view_dashboard():
                     
                     let html = '<div class="space-y-6">';
                     
-                    html += '<div><h3 class="text-lg font-semibold mb-2 text-gray-200">Submit Endorsement Request</h3>';
+                    html += '<div><h3 class="text-lg font-semibold mb-1 text-gray-200">Submit Endorsement Request</h3>';
+                    html += '<p class="text-sm text-gray-400 mb-3">Select a server to request verification for your Discord experience in the server.</p>';
                     html += '<div class="flex flex-col sm:flex-row gap-2">';
                     html += '<select id="request-select" class="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 w-full sm:flex-grow">';
                     html += '<option value="">Choose a server...</option>';
@@ -242,7 +243,8 @@ def view_dashboard():
                     html += '<button onclick="submitRequest(this)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors w-full sm:w-auto">Submit</button>';
                     html += '</div></div>';
 
-                    html += '<div><h3 class="text-lg font-semibold mb-2 text-gray-200">View Experience Requests</h3>';
+                    html += '<div><h3 class="text-lg font-semibold mb-1 text-gray-200">View/Approve Endorsement Requests</h3>';
+                    html += '<p class="text-sm text-gray-400 mb-3">Manage incoming and accepted requests for servers you administer or own.</p>';
                     html += '<div class="flex flex-col sm:flex-row gap-2">';
                     html += '<select id="view-select" class="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 w-full sm:flex-grow">';
                     html += '<option value="">Choose a server...</option>';
