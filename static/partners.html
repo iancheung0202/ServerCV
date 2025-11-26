@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partners | ServerCV</title>
+    <meta name="description" content="Meet the early adopters and partner communities of ServerCV.">
+    <meta name="author" content="ServerCV">
+    <meta property="og:title" content="Partners | ServerCV">
+    <meta property="og:description" content="Meet the early adopters and partner communities of ServerCV.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="ServerCV">
+    <meta property="og:image" content="https://i.imgur.com/t54Mxdx.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Partners | ServerCV">
+    <meta name="twitter:description" content="Meet the early adopters and partner communities of ServerCV.">
+    <meta name="twitter:image" content="https://i.imgur.com/t54Mxdx.png">
+    <link rel="icon" href="https://i.imgur.com/t54Mxdx.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .hero-pattern { background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px); background-size: 40px 40px; }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            900: '#111827',
+                            800: '#1f2937',
+                            700: '#374151',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col">
+    <nav class="bg-gray-900/80 backdrop-blur-md border-b border-gray-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <a href="/" class="text-xl font-bold text-white flex items-center gap-2">
+                            <img src="https://i.imgur.com/t54Mxdx.png" alt="Logo" class="h-8 w-8 rounded-full">
+                            <span class="text-white">ServerCV</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="/" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Home</a>
+                        <a href="/dashboard" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="/partners" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Partners</a>
+                        <a href="https://github.com/iancheung0202/ServerCV" target="_blank" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Github</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button type="button" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="hidden md:hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-900 border-b border-gray-800">
+                <a href="/" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Home</a>
+                <a href="/dashboard" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                <a href="/partners" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Partners</a>
+                <a href="https://github.com/iancheung0202/ServerCV" target="_blank" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Github</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow relative overflow-hidden">
+        <div class="absolute inset-0 hero-pattern opacity-20 pointer-events-none"></div>
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] -z-10"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
+            <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-8">
+                Our <span class="text-indigo-500">Partners</span>
+            </h1>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+                We are proud to be trusted by these amazing communities. Join the early adopters helping to standardize professional history on Discord.
+            </p>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass p-8 rounded-2xl flex flex-col items-center text-center hover:bg-white/5 transition-all duration-300 hover:-translate-y-1">
+                    <div class="w-24 h-24 bg-gray-800 rounded-full mb-6 flex items-center justify-center overflow-hidden border-4 border-gray-800 shadow-lg">
+                        <img src="https://cdn.discordapp.com/avatars/1078152278399262731/6d6839bfbffe72380430b7cc8e9b44d9.png?size=256" alt="MystiCraft" class="w-full h-full object-cover">
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">MystiCraft</h3>
+                    <p class="text-gray-400 text-sm mb-6">MystiCraft invites daring adventurers to explore an exceptional Lifesteal & Vanilla gamemode in the Minecraft world.</p>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        Early Adopter
+                    </span>
+                </div>
+
+                <div class="glass p-8 rounded-2xl flex flex-col items-center text-center hover:bg-white/5 transition-all duration-300 hover:-translate-y-1 opacity-50">
+                    <div class="w-24 h-24 bg-gray-800 rounded-full mb-6 flex items-center justify-center overflow-hidden border-4 border-gray-800 shadow-lg">
+                        <div class="w-full h-full bg-gray-700 flex items-center justify-center text-gray-500 text-xs">Your Logo</div>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Your Server</h3>
+                    <p class="text-gray-400 text-sm mb-6">This spot is reserved for our future partners. Join us today!</p>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                        Available
+                    </span>
+                </div>
+
+                <div class="glass p-8 rounded-2xl flex flex-col items-center text-center hover:bg-white/5 transition-all duration-300 hover:-translate-y-1 opacity-50">
+                    <div class="w-24 h-24 bg-gray-800 rounded-full mb-6 flex items-center justify-center overflow-hidden border-4 border-gray-800 shadow-lg">
+                        <div class="w-full h-full bg-gray-700 flex items-center justify-center text-gray-500 text-xs">Your Logo</div>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Your Server</h3>
+                    <p class="text-gray-400 text-sm mb-6">This spot is reserved for our future partners. Join us today!</p>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                        Available
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="py-24 text-center px-4 bg-gray-900/50 border-y border-gray-800">
+            <h2 class="text-3xl font-bold mb-6">Become a Partner</h2>
+            <p class="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
+                Want to see your server listed here? Integrate ServerCV into your community workflow.
+            </p>
+            <a href="/dashboard" class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-1">
+                Get Started
+            </a>
+        </div>
+    </main>
+
+    <footer class="bg-gray-900 border-t border-gray-800 mt-auto">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <span class="text-xl font-bold text-white">ServerCV</span>
+                    <p class="text-gray-500 text-sm mt-2">Building trust in the Discord community.</p>
+                </div>
+                <div class="flex gap-6 flex-wrap justify-center">
+                    <a href="/terms" class="text-gray-400 hover:text-white transition-colors">Terms</a>
+                    <a href="/privacy" class="text-gray-400 hover:text-white transition-colors">Privacy</a>
+                    <a href="/partners" class="text-gray-400 hover:text-white transition-colors">Partners</a>
+                    <a href="https://github.com/iancheung0202/ServerCV" target="_blank" class="text-gray-400 hover:text-white transition-colors">Github</a>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-800 text-center text-gray-500 text-sm">
+                &copy; <script>document.write(new Date().getFullYear());</script> <a href="https://iancheung.dev">Ian Cheung</a>. All rights reserved.
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

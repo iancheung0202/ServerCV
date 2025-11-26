@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ServerCV | Professional Discord Resumes</title>
+    <meta name="description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
+    <meta name="author" content="ServerCV">
+    <meta name="keywords" content="Discord Resume, Discord Portfolio, Discord Staff, Server Contributions, Discord Experience, Verified History, Discord Community, Staff Application, ServerCV">
+    <meta name="creator" content="ServerCV">
+    <meta name="publisher" content="ServerCV">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="ServerCV | Professional Discord Resumes">
+    <meta property="og:description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="ServerCV">
+    <meta property="og:image" content="https://i.imgur.com/t54Mxdx.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="ServerCV | Professional Discord Resumes">
+    <meta name="twitter:description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
+    <meta name="twitter:image" content="https://i.imgur.com/t54Mxdx.png">
+    <link rel="icon" href="https://i.imgur.com/t54Mxdx.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .hero-pattern { background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px); background-size: 40px 40px; }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            900: '#111827',
+                            800: '#1f2937',
+                            700: '#374151',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col">
+    <nav class="bg-gray-900/80 backdrop-blur-md border-b border-gray-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <a href="/" class="text-xl font-bold text-white flex items-center gap-2">
+                            <img src="https://i.imgur.com/t54Mxdx.png" alt="Logo" class="h-8 w-8 rounded-full">
+                            <span class="text-white">ServerCV</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="/" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Home</a>
+                        <a href="/dashboard" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="/partners" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Partners</a>
+                        <a href="https://github.com/iancheung0202/ServerCV" target="_blank" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Github</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button type="button" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="hidden md:hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-900 border-b border-gray-800">
+                <a href="/" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Home</a>
+                <a href="/dashboard" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                <a href="/partners" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Partners</a>
+                <a href="https://github.com/iancheung0202/ServerCV" target="_blank" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Github</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow relative overflow-hidden">
+        <div class="absolute inset-0 hero-pattern opacity-20 pointer-events-none"></div>
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] -z-10"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
+            <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-8">
+                Showcase Your <br>
+                <span class="text-indigo-500">Discord Experience</span>
+            </h1>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+                Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="/dashboard" class="flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-1">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037 13.46 13.46 0 0 0-.59 1.227 18.355 18.355 0 0 0-7.534 0 13.46 13.46 0 0 0-.59-1.227.074.074 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.946 2.419-2.157 2.419z"/></svg> Get Started
+                </a>
+                <a href="/partners" class="glass hover:bg-white/10 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200">
+                    Partners
+                </a>
+            </div>
+        </div>
+
+        <!-- The Problem Section -->
+        <div class="bg-gray-900/50 py-24 border-y border-gray-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-3xl font-bold mb-6">The Problem with Discord Applications</h2>
+                    <p class="text-xl text-gray-400 mb-12">
+                        Screenshots can be faked. Word of mouth can be unreliable. When someone applies for roles in a Discord server, how do you <b>prove</b> they actually did the work?
+                    </p>
+                    <div class="grid md:grid-cols-2 gap-8 text-left">
+                        <div class="flex gap-4">
+                            <div class="flex-shrink-0 w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center text-red-500">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2">Unverifiable Claims</h3>
+                                <p class="text-gray-400">Anyone can claim they were an admin, a contributor, or a designer. Without proof, your application is just words.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex-shrink-0 w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center text-red-500">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2">Lost History</h3>
+                                <p class="text-gray-400">Servers get deleted. You leave teams. Your hard work disappears into the void.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="features" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass p-8 rounded-2xl">
+                    <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-6 text-blue-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Verified History</h3>
+                    <p class="text-gray-400">Request endorsements from server owners or admins to verify your roles. Build credibility with confirmed data.</p>
+                </div>
+                <div class="glass p-8 rounded-2xl">
+                    <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-6 text-purple-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Instant Portfolio</h3>
+                    <p class="text-gray-400">Generate a beautiful, shareable link that showcases your entire Discord career. Perfect for apply for roles in any Discord servers.</p>
+                </div>
+                <div class="glass p-8 rounded-2xl">
+                    <div class="w-12 h-12 bg-pink-500/20 rounded-lg flex items-center justify-center mb-6 text-pink-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Secure & Private</h3>
+                    <p class="text-gray-400">You fully control what to display. Your data is secure and only shared with your permission. Trusted by communities worldwide.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works Section -->
+        <div class="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">How ServerCV Works</h2>
+                <p class="text-gray-400">Build your verified portfolio in minutes.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8 relative">
+                <div class="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-500/0 via-indigo-500/50 to-indigo-500/0"></div>
+                
+                <div class="relative z-10 text-center">
+                    <div class="w-24 h-24 bg-gray-900 border-4 border-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold shadow-[0_0_20px_rgba(99,102,241,0.3)]">1</div>
+                    <h3 class="text-xl font-semibold mb-2">Connect</h3>
+                    <p class="text-gray-400">Login with Discord to securely access your server history.</p>
+                </div>
+                <div class="relative z-10 text-center">
+                    <div class="w-24 h-24 bg-gray-900 border-4 border-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold shadow-[0_0_20px_rgba(99,102,241,0.3)]">2</div>
+                    <h3 class="text-xl font-semibold mb-2">Verify</h3>
+                    <p class="text-gray-400">Request endorsement from server owners or admins. Once approved, your role is added to your verified resume.</p>
+                </div>
+                <div class="relative z-10 text-center">
+                    <div class="w-24 h-24 bg-gray-900 border-4 border-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold shadow-[0_0_20px_rgba(99,102,241,0.3)]">3</div>
+                    <h3 class="text-xl font-semibold mb-2">Showcase</h3>
+                    <p class="text-gray-400">Share your unique profile link with server owners and applications.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Use Cases Section -->
+        <div class="bg-gray-900/50 py-24 border-y border-gray-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-center mb-16">Who is ServerCV for?</h2>
+                <div class="grid md:grid-cols-2 gap-12">
+                    <div class="glass p-8 rounded-2xl border-l-4 border-l-indigo-500">
+                        <h3 class="text-2xl font-bold mb-4">For Staff Applicants</h3>
+                        <ul class="space-y-3 text-gray-300">
+                            <li class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Stand out with a verified portfolio
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Prove your experience instantly
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Keep a permanent record of your work
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="glass p-8 rounded-2xl border-l-4 border-l-purple-500">
+                        <h3 class="text-2xl font-bold mb-4">For Server Owners</h3>
+                        <ul class="space-y-3 text-gray-300">
+                            <li class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Verify applicant claims in seconds
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Find experienced staff members
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Endorse your best team members
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Final CTA -->
+        <div class="py-24 text-center px-4">
+            <h2 class="text-4xl font-bold mb-6">Ready to build your portfolio?</h2>
+            <p class="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">Build a verified portfolio that proves your experience and see it in action!</p>
+            <a href="/dashboard" class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-1">
+                Get Started
+            </a>
+        </div>
+    </main>
+
+    <footer class="bg-gray-900 border-t border-gray-800 mt-auto">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <span class="text-xl font-bold text-white">ServerCV</span>
+                    <p class="text-gray-500 text-sm mt-2">Building trust in the Discord community.</p>
+                </div>
+                <div class="flex gap-6 flex-wrap justify-center">
+                    <a href="/terms" class="text-gray-400 hover:text-white transition-colors">Terms</a>
+                    <a href="/privacy" class="text-gray-400 hover:text-white transition-colors">Privacy</a>
+                    <a href="/partners" class="text-gray-400 hover:text-white transition-colors">Partners</a>
+                    <a href="https://github.com/iancheung0202/ServerCV" target="_blank" class="text-gray-400 hover:text-white transition-colors">Github</a>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-800 text-center text-gray-500 text-sm">
+                &copy; <script>document.write(new Date().getFullYear());</script> <a href="https://iancheung.dev">Ian Cheung</a>. All rights reserved.
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
