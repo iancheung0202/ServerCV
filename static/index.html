@@ -49,6 +49,13 @@
         body { font-family: 'Inter', sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .hero-pattern { background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px); background-size: 40px 40px; }
+        
+        /* Animations */
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        
+        .cursor { display: inline-block; width: 4px; height: 1em; background-color: #6366f1; margin-left: 4px; vertical-align: middle; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
     </style>
     <script>
         tailwind.config = {
@@ -109,31 +116,37 @@
     </nav>
 
     <main class="flex-grow relative overflow-hidden">
-        <div class="absolute inset-0 hero-pattern opacity-20 pointer-events-none"></div>
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] -z-10"></div>
+        <div class="relative">
+            <canvas id="hero-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] -z-10 animate-pulse"></div>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
-            <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-8">
-                Showcase Your <br>
-                <span class="text-indigo-500">Discord Experience</span>
-            </h1>
-            <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
-                Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.
-            </p>
-            <div class="flex flex-col sm:flex-row justify-center gap-4">
-                <a href="/dashboard" class="flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-1">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037 13.46 13.46 0 0 0-.59 1.227 18.355 18.355 0 0 0-7.534 0 13.46 13.46 0 0 0-.59-1.227.074.074 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.946 2.419-2.157 2.419z"/></svg> Build My Portfolio
-                </a>
-                <a href="/partners" class="glass hover:bg-white/10 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200">
-                    Partners
-                </a>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center relative z-10">
+                <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-8 reveal">
+                    Showcase Your <br>
+                    <span class="sr-only">Discord Experience</span>
+                    <span aria-hidden="true">
+                        <span class="text-indigo-500" id="typewriter-text"></span><span class="cursor"></span>
+                    </span>
+                </h1>
+                <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 reveal" style="transition-delay: 0.1s">
+                    Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4 reveal" style="transition-delay: 0.2s">
+                    <a href="/dashboard" class="flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-1">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037 13.46 13.46 0 0 0-.59 1.227 18.355 18.355 0 0 0-7.534 0 13.46 13.46 0 0 0-.59-1.227.074.074 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.946 2.419-2.157 2.419z"/></svg> Build My Portfolio
+                    </a>
+                    <a href="/partners" class="glass hover:bg-white/10 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200">
+                        Partners
+                    </a>
+                </div>
             </div>
+        </div>
         </div>
 
         <!-- The Problem Section -->
         <div class="bg-gray-900/50 py-24 border-y border-gray-800">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center max-w-3xl mx-auto">
+                <div class="text-center max-w-3xl mx-auto reveal">
                     <h2 class="text-3xl font-bold mb-6">The Problem with Discord Applications</h2>
                     <p class="text-xl text-gray-400 mb-12">
                         Remember those questions on staff applications that ask you to list your previous moderating experience? Anyone can lie, servers may disappear, and there is no reliable way to verify. You need a way to <b>prove</b> you're the real deal.
@@ -162,66 +175,117 @@
             </div>
         </div>
 
-        <div id="features" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="glass p-8 rounded-2xl">
-                    <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-6 text-blue-400">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">Vouched by Humans</h3>
-                    <p class="text-gray-400">We don't just list roles. You get endorsements from actual server owners and admins. Real verification from real people.</p>
-                </div>
-                <div class="glass p-8 rounded-2xl">
-                    <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-6 text-purple-400">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">Your Experience in One Link</h3>
-                    <p class="text-gray-400">Generate a clean, shareable link that showcases your entire Discord experience. Send it with your next application.</p>
-                </div>
-                <div class="glass p-8 rounded-2xl">
-                    <div class="w-12 h-12 bg-pink-500/20 rounded-lg flex items-center justify-center mb-6 text-pink-400">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">You're in Control</h3>
-                    <p class="text-gray-400">You decide what to show on your portfolio. Your data is yours, and we only share what you want us to.</p>
-                </div>
-            </div>
-        </div>
-
         <!-- How It Works Section -->
         <div class="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
+            <div class="text-center mb-16 reveal">
                 <h2 class="text-3xl font-bold mb-4">How it works</h2>
-                <p class="text-gray-400">It's actually pretty simple.</p>
+                <p class="text-gray-400">It's actually pretty simple. The demo doesn't fully replicate all the features, but you get the idea.</p>
             </div>
-            <div class="grid md:grid-cols-3 gap-8 relative">
-                <div class="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-500/0 via-indigo-500/50 to-indigo-500/0"></div>
-                
-                <div class="relative z-10 text-center">
-                    <div class="w-24 h-24 bg-gray-900 border-4 border-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold shadow-[0_0_20px_rgba(99,102,241,0.3)]">1</div>
-                    <h3 class="text-xl font-semibold mb-2">Connect</h3>
-                    <p class="text-gray-400">Log in with Discord. We'll pull up your server list immediately.</p>
+            <div class="grid md:grid-cols-3 gap-8 relative reveal">
+
+                <!-- Step 1: Connect -->
+                <div class="relative z-10 reveal" style="transition-delay: 0.1s">
+                    <div class="glass p-6 rounded-2xl relative overflow-hidden group hover:border-indigo-500/50 transition-colors h-full">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                        <div class="mb-6 mt-2 text-center">
+                            <div class="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-400 mb-4 mx-auto text-xl font-bold">1</div>
+                            <h3 class="text-xl font-bold mb-2">Connect</h3>
+                            <p class="text-gray-400 text-sm">Log in with Discord. We'll pull up your server list immediately.</p>
+                        </div>
+                        <!-- Demo UI -->
+                        <div class="bg-gray-900/50 rounded-lg p-4 border border-gray-700 space-y-3">
+                            <div class="flex items-center gap-3 p-2 bg-gray-800 rounded border border-gray-700 animate-pulse">
+                                <div class="w-8 h-8 rounded-full bg-gray-700"></div>
+                                <div class="h-3 w-24 bg-gray-700 rounded"></div>
+                            </div>
+                            <div class="flex items-center gap-3 p-2 bg-gray-800 rounded border border-gray-700" style="animation-delay: 0.2s">
+                                <img src="https://cdn.discordapp.com/icons/302094807046684672/24f8bc7ec317e6eaaa0d8352720a7dfe.png?size=128" alt="Minecraft" class="w-8 h-8 rounded-full">
+                                <div class="flex items-center gap-1">
+                                    <div class="text-sm text-gray-300">MINECRAFT</div>
+                                    <svg class="w-3 h-3 text-green-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.78L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z" /></svg>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 p-2 bg-gray-800 rounded border border-gray-700" style="animation-delay: 0.4s">
+                                <img src="https://cdn.discordapp.com/icons/522681957373575168/4ea930fbdd045280844d163d97c72002.png?size=128" alt="Fortnite" class="w-8 h-8 rounded-full">
+                                <div class="flex items-center gap-1">
+                                    <div class="text-sm text-gray-300">Genshin Impact Official</div>
+                                    <svg class="w-3 h-3 text-green-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.78L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z" /></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="relative z-10 text-center">
-                    <div class="w-24 h-24 bg-gray-900 border-4 border-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold shadow-[0_0_20px_rgba(99,102,241,0.3)]">2</div>
-                    <h3 class="text-xl font-semibold mb-2">Verify</h3>
-                    <p class="text-gray-400">Ask server owners for a quick endorsement. Once they approve, it's on your record right away.</p>
+
+                <!-- Step 2: Verify -->
+                <div class="relative z-10 reveal" style="transition-delay: 0.2s">
+                    <div class="glass p-6 rounded-2xl relative overflow-hidden group hover:border-indigo-500/50 transition-colors h-full">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                        <div class="mb-6 mt-2 text-center">
+                            <div class="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-400 mb-4 mx-auto text-xl font-bold">2</div>
+                            <h3 class="text-xl font-bold mb-2">Verify</h3>
+                            <p class="text-gray-400 text-sm">Ask server owners for a quick endorsement. Once they approve, it's on your record.</p>
+                        </div>
+                        <!-- Demo UI -->
+                        <div id="step2-demo-ui" class="bg-gray-900/50 rounded-lg p-4 border border-gray-700 relative transition-opacity duration-500">
+                            <div class="flex justify-between items-center mb-3">
+                                <div class="text-xs text-gray-400">Request from <span class="text-white">Alex</span></div>
+                                <div id="step2-status" class="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">Pending</div>
+                            </div>
+                            <div class="flex items-center gap-2 mb-3">
+                                <img src="https://cdn.discordapp.com/icons/302094807046684672/24f8bc7ec317e6eaaa0d8352720a7dfe.png?size=128" alt="Minecraft" class="w-4 h-4 rounded-full">
+                                <span class="text-xs text-gray-300">MINECRAFT</span>
+                            </div>
+                            <div class="text-sm font-medium text-white mb-4">Senior Moderator</div>
+                            <button id="step2-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-2 rounded transition-colors flex items-center justify-center gap-2">
+                                Approve Request
+                            </button>
+                            <div id="step2-particles" class="absolute inset-0 pointer-events-none overflow-hidden rounded-lg"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="relative z-10 text-center">
-                    <div class="w-24 h-24 bg-gray-900 border-4 border-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold shadow-[0_0_20px_rgba(99,102,241,0.3)]">3</div>
-                    <h3 class="text-xl font-semibold mb-2">Show Off</h3>
-                    <p class="text-gray-400">Send your unique link to anyone. Nail the application and get the role you wanted.</p>
+
+                <!-- Step 3: Show Off -->
+                <div class="relative z-10 reveal" style="transition-delay: 0.3s">
+                    <div class="glass p-6 rounded-2xl relative overflow-hidden group hover:border-indigo-500/50 transition-colors h-full">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                        <div class="mb-6 mt-2 text-center">
+                            <div class="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-400 mb-4 mx-auto text-xl font-bold">3</div>
+                            <h3 class="text-xl font-bold mb-2">Show Off</h3>
+                            <p class="text-gray-400 text-sm">Send your unique link to anyone. Nail the application and get the role you wanted.</p>
+                        </div>
+                        <!-- Demo UI -->
+                        <div class="bg-gray-900/50 rounded-lg p-4 border border-gray-700 text-center">
+                            <div class="w-12 h-12 mx-auto bg-[#5865F2] rounded-full flex items-center justify-center mb-3">
+                                <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419z"/>
+                                </svg>
+                            </div>
+                            <div class="text-xs text-gray-400 mb-3">servercv.com/u/alex</div>
+                            <button id="step3-btn" class="w-full bg-gray-800 hover:bg-gray-700 text-white text-xs py-2 rounded border border-gray-700 transition-all flex items-center justify-center gap-2 group-copy">
+                                <span>Copy Link</span>
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Use Cases Section -->
         <div class="bg-gray-900/50 py-24 border-y border-gray-800">
+
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl font-bold mb-4">Is this for you?</h2>
+                <p class="text-gray-400">Yes, unless you aren't a chronically online Discord user, in which case, this probably isn't for you.</p>
+            </div>
+                
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 class="text-3xl font-bold text-center mb-16">Is this for you?</h2>
                 <div class="grid md:grid-cols-2 gap-12">
-                    <div class="glass p-8 rounded-2xl border-l-4 border-l-indigo-500">
-                        <h3 class="text-2xl font-bold mb-4">For Staff Applicants</h3>
+                    <div class="glass p-8 rounded-2xl border-l-4 border-l-indigo-500 reveal" style="transition-delay: 0.1s">
+                        <h3 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                            For Staff Applicants
+                            <img src="https://cdn.discordapp.com/badge-icons/5e74e9b61934fc1f67c65515d1f7e60d.png" alt="Discord Staff" class="w-6 h-6">
+                        </h3>
                         <ul class="space-y-3 text-gray-300">
                             <li class="flex items-center gap-3">
                                 <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -237,8 +301,11 @@
                             </li>
                         </ul>
                     </div>
-                    <div class="glass p-8 rounded-2xl border-l-4 border-l-purple-500">
-                        <h3 class="text-2xl font-bold mb-4">For Server Owners</h3>
+                    <div class="glass p-8 rounded-2xl border-l-4 border-l-purple-500 reveal" style="transition-delay: 0.2s">
+                        <h3 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                            For Server Owners
+                            <svg class="w-6 h-6 text-[#FAB664]" aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M5 18a1 1 0 0 0-1 1 3 3 0 0 0 3 3h10a3 3 0 0 0 3-3 1 1 0 0 0-1-1H5ZM3.04 7.76a1 1 0 0 0-1.52 1.15l2.25 6.42a1 1 0 0 0 .94.67h14.55a1 1 0 0 0 .95-.71l1.94-6.45a1 1 0 0 0-1.55-1.1l-4.11 3-3.55-5.33.82-.82a.83.83 0 0 0 0-1.18l-1.17-1.17a.83.83 0 0 0-1.18 0l-1.17 1.17a.83.83 0 0 0 0 1.18l.82.82-3.61 5.42-4.41-3.07Z"></path></svg>
+                        </h3>
                         <ul class="space-y-3 text-gray-300">
                             <li class="flex items-center gap-3">
                                 <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -250,7 +317,7 @@
                             </li>
                             <li class="flex items-center gap-3">
                                 <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                Endorse your best team members easily
+                                Endorse your best team members 
                             </li>
                         </ul>
                     </div>
@@ -260,14 +327,14 @@
 
         <!-- FAQ -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-            <div class="text-center mb-16">
+            <div class="text-center mb-16 reveal">
                 <h2 class="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
                 <p class="text-gray-400">Got questions? We've got answers.</p>
             </div>
-            <div class="space-y-8 max-w-3xl mx-auto">
+            <div class="space-y-8 max-w-3xl mx-auto reveal" style="transition-delay: 0.2s">
                 <div>
                     <h3 class="text-xl font-semibold mb-2">Is ServerCV free to use?</h3>
-                    <p class="text-gray-400">Yes, it's free to start! You can showcase up to 5 verified experiences, add 3 social links, and write short descriptions. For power users, <a href="/premium" class="text-indigo-400 hover:text-indigo-300">Premium</a> unlocks unlimited experiences, more customization options, vanity URLs for your user and server profiles, and more.</p>
+                    <p class="text-gray-400">Yes, it's free to start! For power users, <a href="/premium" class="text-indigo-400 hover:text-indigo-300">Premium</a> unlocks unlimited experiences, more customization options, vanity URLs for your user and server profiles, and more.</p>
                 </div>
                 <div>
                     <h3 class="text-xl font-semibold mb-2">How do endorsements work?</h3>
@@ -275,11 +342,11 @@
                 </div>
                 <div>
                     <h3 class="text-xl font-semibold mb-2">Who can approve requests?</h3>
-                    <p class="text-gray-400">Only <b>Server Owners</b> and <b>Administrators</b> can view and manage requests. Server Owners can approve any request (including their own). Administrators can approve requests from Moderators, but cannot approve requests from other Admins or the Owner.</p>
+                    <p class="text-gray-400">Only <b>Server Owners</b> and <b>Administrators</b> can view and manage requests. Server Owners can approve any request (including their own). Administrators can approve requests from Moderators, but cannot approve requests from other Administrators or the Owner.</p>
                 </div>
                 <div>
                     <h3 class="text-xl font-semibold mb-2">Can I control my portfolio?</h3>
-                    <p class="text-gray-400">Yes. You can delete any experience from your profile at any time. You can also update the "End Date" of your roles. Premium users can <b>pin</b> their most important experiences to the top.</p>
+                    <p class="text-gray-400">Yes. You can delete and  update the "End Date" of any experience from your profile at any time. <a href="/premium" class="text-indigo-400 hover:text-indigo-300">Premium</a> users can also <b>pin</b> their most important experiences to the top.</p>
                     <p class="text-gray-400 mt-2">To ensure credibility, you cannot edit any other details of an approved experience yourself. If your role changes, a Server Owner or Administrator can update your role title for you. If your experience is edited with incorrect information, you can simply delete that experience and submit a new endorsement request.</p>
                 </div>
                 <div>
@@ -290,7 +357,7 @@
         </div>
 
         <!-- Final CTA -->
-        <div class="py-24 text-center px-4">
+        <div class="py-24 text-center px-4 reveal">
             <h2 class="text-4xl font-bold mb-6">Ready to prove your worth?</h2>
             <p class="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">Join the community of verified Discord staff and start building your portfolio today.</p>
             <a href="/dashboard" class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-1">
@@ -318,5 +385,339 @@
             </div>
         </div>
     </footer>
+
+    <script>
+        // --- Advanced Typewriter Effect ---
+        const phrases = ["Discord Experience", "Moderation History", "Server Contributions", "Community Impact"];
+        const typewriterElement = document.getElementById('typewriter-text');
+        let phraseIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let typeSpeed = 100;
+
+        function typeWriter() {
+            const currentPhrase = phrases[phraseIndex];
+            
+            if (isDeleting) {
+                typewriterElement.innerHTML = currentPhrase.substring(0, charIndex - 1);
+                charIndex--;
+                typeSpeed = 50;
+            } else {
+                typewriterElement.innerHTML = currentPhrase.substring(0, charIndex + 1);
+                charIndex++;
+                typeSpeed = 100;
+            }
+
+            if (!isDeleting && charIndex === currentPhrase.length) {
+                isDeleting = true;
+                typeSpeed = 2000; // Pause at end
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                phraseIndex = (phraseIndex + 1) % phrases.length;
+                typeSpeed = 500; // Pause before typing new
+            }
+
+            setTimeout(typeWriter, typeSpeed);
+        }
+        
+        setTimeout(typeWriter, 500);
+
+        // --- Scroll Reveal ---
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // --- Discord Status Grid Background ---
+        const canvas = document.getElementById('hero-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let dots = [];
+        const spacing = 40;
+        const mouse = { x: -1000, y: -1000 };
+
+        // Discord Colors
+        const colors = {
+            offline: '#2f3136', // Dark gray
+            online: '#3ba55c',  // Green
+            idle: '#faa61a',    // Yellow
+            dnd: '#ed4245'      // Red
+        };
+
+        function resize() {
+            width = canvas.width = canvas.offsetWidth;
+            height = canvas.height = canvas.offsetHeight;
+            initDots();
+        }
+
+        class Dot {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseColor = colors.offline;
+                this.color = colors.offline;
+                this.size = 2;
+                this.targetSize = 2;
+                this.status = 'offline';
+            }
+
+            update() {
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const maxDist = 150;
+
+                if (distance < maxDist) {
+                    // Calculate intensity based on distance
+                    const intensity = 1 - (distance / maxDist);
+                    this.targetSize = 2 + (intensity * 3);
+                    
+                    // Determine color based on position (pseudo-random but deterministic)
+                    // This creates "zones" of status
+                    const zone = (this.x + this.y) % 300;
+                    if (zone < 100) {
+                        this.color = colors.online;
+                        this.status = 'online';
+                    } else if (zone < 200) {
+                        this.color = colors.idle;
+                        this.status = 'idle';
+                    } else {
+                        this.color = colors.dnd;
+                        this.status = 'dnd';
+                    }
+                } else {
+                    this.targetSize = 2;
+                    this.color = this.baseColor;
+                    this.status = 'offline';
+                }
+
+                // Smooth size transition
+                this.size += (this.targetSize - this.size) * 0.1;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                
+                if (this.status === 'idle') {
+                    // Draw Moon (Idle)
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Cutout for moon shape
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.beginPath();
+                    ctx.arc(this.x - this.size * 0.4, this.y - this.size * 0.4, this.size * 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalCompositeOperation = 'source-over';
+                } else if (this.status === 'dnd') {
+                    // Draw Do Not Disturb (Red with line)
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // White line in middle
+                    ctx.fillStyle = '#111827'; // Background color to simulate cutout
+                    ctx.fillRect(this.x - this.size * 0.6, this.y - this.size * 0.2, this.size * 1.2, this.size * 0.4);
+                } else {
+                    // Online or Offline (Circle)
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function initDots() {
+            dots = [];
+            for (let x = 0; x < width; x += spacing) {
+                for (let y = 0; y < height; y += spacing) {
+                    dots.push(new Dot(x, y));
+                }
+            }
+        }
+
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
+        });
+
+        resize();
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            dots.forEach(dot => {
+                dot.update();
+                dot.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- 3D Tilt Effect for Cards ---
+        document.querySelectorAll('.glass').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = ((y - centerY) / centerY) * -5; // Max 5deg rotation
+                const rotateY = ((x - centerX) / centerX) * 5;
+
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                card.style.transition = 'transform 0.1s ease';
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+                card.style.transition = 'transform 0.5s ease';
+            });
+        });
+
+        // --- Interactive Demo Logic ---
+        // Step 2: Verify Demo
+        const step2Btn = document.getElementById('step2-btn');
+        const step2Status = document.getElementById('step2-status');
+        const step2Particles = document.getElementById('step2-particles');
+        let step2Verified = false;
+
+        if (step2Btn) {
+            step2Btn.addEventListener('click', (e) => {
+                if (step2Verified) return;
+                step2Verified = true;
+
+                // Button Animation
+                const originalContent = step2Btn.innerHTML;
+                step2Btn.innerHTML = `<span>Approved!</span><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+                step2Btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+                step2Btn.classList.add('bg-green-500', 'hover:bg-green-400');
+
+                // Status Badge Animation
+                step2Status.className = "text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 transition-all duration-300";
+                step2Status.innerHTML = `Verified`;
+
+                // Particle Explosion
+                const rect = step2Btn.getBoundingClientRect();
+                const parentRect = step2Particles.getBoundingClientRect();
+                const originX = rect.left - parentRect.left + rect.width / 2;
+                const originY = rect.top - parentRect.top + rect.height / 2;
+
+                for (let i = 0; i < 30; i++) {
+                    createConfetti(originX, originY, step2Particles);
+                }
+
+                // Switch to User POV after 3s
+                setTimeout(() => {
+                    const demoUI = document.getElementById('step2-demo-ui');
+                    if (demoUI) {
+                        // Fade out
+                        demoUI.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            demoUI.innerHTML = `
+                                <div class="flex justify-between items-center mb-3">
+                                    <div class="text-xs text-gray-400">Approved on ${new Date().toLocaleDateString()}</div>
+                                    <div class="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">Active</div>
+                                </div>
+                                <div class="flex items-center gap-2 mb-3">
+                                    <img src="https://cdn.discordapp.com/icons/302094807046684672/24f8bc7ec317e6eaaa0d8352720a7dfe.png?size=128" alt="Minecraft" class="w-4 h-4 rounded-full">
+                                    <span class="text-xs text-gray-300">MINECRAFT</span>
+                                </div>
+                                <div class="text-sm font-medium text-white mb-4">Senior Moderator</div>
+                                <div class="w-full bg-gray-800 text-gray-300 text-xs py-2 rounded border border-gray-700 flex items-center justify-center gap-2">
+                                    <svg class="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Verified by Owner
+                                </div>
+                            `;
+                            // Fade in
+                            demoUI.style.opacity = '1';
+                        }, 500); // Wait for fade out
+                    }
+                }, 3000);
+            });
+        }
+
+        // Step 3: Copy Link Demo
+        const step3Btn = document.getElementById('step3-btn');
+        if (step3Btn) {
+            step3Btn.addEventListener('click', () => {
+                const originalContent = step3Btn.innerHTML;
+                step3Btn.innerHTML = `<span>Copied!</span><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+                step3Btn.classList.remove('bg-gray-800', 'hover:bg-gray-700', 'border-gray-700');
+                step3Btn.classList.add('bg-indigo-600', 'hover:bg-indigo-500', 'border-indigo-600');
+                
+                setTimeout(() => {
+                    step3Btn.innerHTML = originalContent;
+                    step3Btn.classList.add('bg-gray-800', 'hover:bg-gray-700', 'border-gray-700');
+                    step3Btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500', 'border-indigo-600');
+                }, 2000);
+            });
+        }
+
+        function createConfetti(x, y, container) {
+            const particle = document.createElement('div');
+            particle.style.position = 'absolute';
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            particle.style.width = Math.random() * 4 + 2 + 'px';
+            particle.style.height = Math.random() * 4 + 2 + 'px';
+            
+            const colors = ['#6366f1', '#a855f7', '#ec4899', '#22c55e', '#eab308', '#ffffff'];
+            particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+            particle.style.pointerEvents = 'none';
+            particle.style.zIndex = '20';
+            
+            container.appendChild(particle);
+
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = Math.random() * 6 + 3;
+            let vx = Math.cos(angle) * velocity;
+            let vy = Math.sin(angle) * velocity;
+            let life = 1;
+            let rotation = 0;
+            let rotationSpeed = (Math.random() - 0.5) * 10;
+
+            function update() {
+                vx *= 0.92;
+                vy *= 0.92;
+                vy += 0.5;
+                
+                const currentLeft = parseFloat(particle.style.left);
+                const currentTop = parseFloat(particle.style.top);
+                
+                particle.style.left = (currentLeft + vx) + 'px';
+                particle.style.top = (currentTop + vy) + 'px';
+                
+                life -= 0.02;
+                rotation += rotationSpeed;
+                
+                particle.style.opacity = life;
+                particle.style.transform = `scale(${life}) rotate(${rotation}deg)`;
+
+                if (life > 0) {
+                    requestAnimationFrame(update);
+                } else {
+                    particle.remove();
+                }
+            }
+            requestAnimationFrame(update);
+        }
+    </script>
 </body>
 </html>
