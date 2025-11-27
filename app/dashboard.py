@@ -217,7 +217,7 @@ def view_dashboard():
             let experienceCount = 0;
 
             function getPremiumButtonHtml() {{
-                return '<a href="/premium" class="block w-full bg-transparent border-2 border-yellow-500 hover:border-orange-600 text-yellow-500 hover:text-orange-600 px-4 py-3 rounded-lg font-semibold transition-all transform hover:scale-[1.02] shadow-lg text-center">Upgrade to Premium for Unlimited Experiences</a>';
+                return '<a href="/premium" class="block w-full bg-transparent border-2 border-yellow-500 hover:border-orange-600 text-yellow-500 hover:text-orange-600 px-4 py-3 rounded-lg font-semibold transition-all transform hover:scale-[1.02] shadow-lg text-center"><span title="Verified Premium Member"><svg class="w-6 h-6 text-yellow-500 inline-block align-text-bottom" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></span> Unlock the full potential of ServerCV with Premium</a>';
             }}
             
             fetch('/api/guilds')
@@ -266,7 +266,7 @@ def view_dashboard():
                     if (!isPremium) {{
                         html += `<div class="pt-4 border-t border-gray-700">${{getPremiumButtonHtml()}}</div>`;
                     }} else {{
-                        html += '<div class="pt-4 border-t border-gray-700"><div class="text-green-400 font-semibold">You have Premium access permanently. Enjoy adding unlimited experiences!</div></div>';
+                        html += '<div class="pt-4 border-t border-gray-700"><div class="text-green-400 font-semibold"><span title="Verified Premium Member"><svg class="w-6 h-6 text-yellow-500 inline-block align-text-bottom" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></span> You have Verified Premium Member access permanently. Enjoy adding unlimited experiences!</div></div>';
                     }}
                     
                     html += '</div>';
@@ -1867,7 +1867,7 @@ def premium_page():
     <div class="max-w-4xl mx-auto">
         <div class="text-center mb-12">
             <h1 class="text-4xl font-bold text-white mb-4">Choose Your Plan</h1>
-            <p class="text-xl text-gray-400">Unlock the full potential of ServerCV</p>
+            <p class="text-xl text-gray-400">Unlock the full potential of ServerCV while supporting its development. Thank you for your support!</p>
         </div>
 
         <div class="grid md:grid-cols-2 gap-8">
@@ -1885,7 +1885,7 @@ def premium_page():
                     </li>
                     <li class="flex items-center text-gray-300">
                         <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Basic Profile
+                        Basic User and Server Profiles
                     </li>
                     <li class="flex items-center text-gray-300">
                         <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -1905,9 +1905,9 @@ def premium_page():
             <div class="glass p-8 rounded-2xl border-2 border-indigo-500 relative flex flex-col">
                 <div class="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">RECOMMENDED</div>
                 <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-white mb-2">Premium</h2>
+                    <h2 class="text-2xl font-semibold text-white mb-2">Premium <span title="Verified Premium Member"><svg class="w-6 h-6 text-yellow-500 inline-block align-text-bottom" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></span></h2>
                     <div class="text-4xl font-bold text-white">${premium_price}</div>
-                    <div class="text-indigo-300">One-time payment</div>
+                    <div class="text-indigo-300">One-time Purchase <small class="text-gray-400"> (in USD)</small></div>
                 </div>
                 <ul class="space-y-4 mb-8 flex-1">
                     <li class="flex items-center text-white">
