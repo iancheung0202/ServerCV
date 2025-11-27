@@ -15,6 +15,27 @@ def save_user_to_firebase(user, token):
         "discord_token": token
     })
 
+def log_history(exp_id, action, user_id, details=None):
+    history_entry = {
+        "action": action,
+        "user_id": user_id,
+        "timestamp": time(),
+        "details": details or {}
+    }
+    db.reference(f"Experiences/{exp_id}/history").push(history_entry)
+
+def get_experience_history(exp_id):
+    history = db.reference(f"Experiences/{exp_id}/history").get()
+    if not history:
+        return []
+    # Convert dict to list and sort by timestamp
+    history_list = []
+    for k, v in history.items():
+        v['id'] = k
+        history_list.append(v)
+    history_list.sort(key=lambda x: x['timestamp'], reverse=True)
+    return history_list
+
 def save_experience_request(user_id, server_id, server_name, role_title, start_month, start_year, end_month, end_year, description, requester_role, server_icon=None):
     exp_id = str(uuid.uuid4())
     data = {
@@ -35,6 +56,7 @@ def save_experience_request(user_id, server_id, server_name, role_title, start_m
         data["server_icon"] = server_icon
         
     db.reference(f"Experiences/{exp_id}").set(data)
+    log_history(exp_id, "Initial Request Submission", user_id, data)
     return exp_id
 
 def approve_experience(exp_id, approved_by):
@@ -43,6 +65,7 @@ def approve_experience(exp_id, approved_by):
         "approved_at": time(),
         "status": "approved"
     })
+    log_history(exp_id, "Approved", approved_by)
 
 def reject_experience(exp_id):
     db.reference(f"Experiences/{exp_id}").delete()
@@ -106,11 +129,13 @@ def get_user_experiences(user_id):
                 approved.append(exp_copy)
     return approved
 
-def update_experience_end_date(exp_id, end_month, end_year):
+def update_experience_end_date(exp_id, end_month, end_year, user_id=None):
     db.reference(f"Experiences/{exp_id}").update({
         "end_month": end_month,
         "end_year": end_year
     })
+    if user_id:
+        log_history(exp_id, "End Date Updated", user_id, {"end_month": end_month, "end_year": end_year})
 
 def get_user_data(user_id):
     return db.reference(f"Dashboard Users/{user_id}").get()

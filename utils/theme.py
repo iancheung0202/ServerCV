@@ -1,6 +1,6 @@
 import html
 
-def get_theme_html_head(page_title="Dashboard", favicon_url="https://servercv.com/assets/logo.png"):
+def get_theme_html_head(page_title="Dashboard", favicon_url="https://servercv.com/assets/icon.png"):
     """
     Returns the HTML head section with Tailwind CSS and Google Fonts
     """
@@ -79,7 +79,7 @@ def get_navbar(title="ServerCV", nav_links=None):
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
                         <a href="/" class="text-xl font-bold text-white flex items-center gap-2">
-                            <img src="https://servercv.com/assets/logo.png" alt="Logo" class="h-8 w-8 rounded-full">
+                            <img src="https://servercv.com/assets/icon.png" alt="Logo" class="h-8 w-8 rounded-full">
                             <span>ServerCV</span>
                         </a>
                     </div>
@@ -118,7 +118,7 @@ def wrap_page(title, content, nav_links=None, favicon_url=None):
     if nav_links is None:
         nav_links = [("/dashboard", "Dashboard", "")]
         
-    head = get_theme_html_head(title, favicon_url if favicon_url else "https://servercv.com/assets/logo.png")
+    head = get_theme_html_head(title, favicon_url if favicon_url else "https://servercv.com/assets/icon.png")
     navbar = get_navbar("ServerCV", nav_links)
     
     return f"""

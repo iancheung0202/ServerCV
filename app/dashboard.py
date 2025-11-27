@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from flask import Blueprint, request, session, redirect, jsonify
 
 from config.settings import API_BASE, BOT_TOKEN, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, PAYPAL_CLIENT_ID, PREMIUM_ONE_TIME_PRICE
-from utils.firebase import save_user_to_firebase, save_experience_request, get_user_experiences, approve_experience, reject_experience, update_experience_end_date, get_all_experiences_for_server, get_user_data
+from utils.firebase import save_user_to_firebase, save_experience_request, get_user_experiences, approve_experience, reject_experience, update_experience_end_date, get_all_experiences_for_server, get_user_data, log_history, get_experience_history, get_user_info_short
 from utils.request import requests_session
 from utils.theme import wrap_page, error_page
 
@@ -147,13 +147,13 @@ def view_dashboard():
                 <meta property="og:description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
                 <meta property="og:type" content="website">
                 <meta property="og:site_name" content="ServerCV">
-                <meta property="og:image" content="https://servercv.com/assets/logo.png">
+                <meta property="og:image" content="https://servercv.com/assets/icon.png">
                 <meta property="og:url" content="https://servercv.com/dashboard">
                 <meta name="theme-color" content="#5A4BEB">
                 <meta name="twitter:card" content="summary">
                 <meta name="twitter:title" content="ServerCV | Show Your Verified Discord Experience">
                 <meta name="twitter:description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
-                <meta name="twitter:image" content="https://servercv.com/assets/logo.png">
+                <meta name="twitter:image" content="https://servercv.com/assets/icon.png">
                 <link rel="icon" href="https://servercv.com/assets/favicon.ico" sizes="48x48" type="image/x-icon">
                 <link rel="icon" href="https://servercv.com/assets/icon.png" sizes="1024x1024" type="image/png">
                 <link rel="apple-touch-icon" href="https://servercv.com/assets/apple-icon.png" sizes="180x180" type="image/png">
@@ -168,7 +168,7 @@ def view_dashboard():
                 "publisher": {
                     "@type": "Organization",
                     "name": "ServerCV",
-                    "logo": "https://servercv.com/assets/logo.png"
+                    "logo": "https://servercv.com/assets/icon.png"
                 }
                 }
                 </script>
@@ -319,7 +319,15 @@ def view_dashboard():
                         if (exp.description) {{
                             html += `<p class="text-gray-300 text-sm mb-2 break-words">${{exp.description}}</p>`;
                         }}
-                        html += `<div class="text-xs text-gray-500">Approved by: <a href="/u/${{exp.approved_by_slug || exp.approved_by}}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">${{exp.approved_by_name}}</a></div>`;
+                        html += `<div class="flex flex-col gap-1 text-xs text-gray-500 mt-2">`;
+                        html += `<div class="flex items-center gap-2">`;
+                        html += `<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                        html += `<span>Verified by <a href="/u/${{exp.approved_by_slug || exp.approved_by}}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">${{exp.approved_by_name}}</a></span>`;
+                        html += `</div>`;
+                        html += `<div class="flex items-center gap-2">`;
+                        html += `<a href="/experience/${{exp.id}}" class="hover:text-indigo-400 transition-colors flex items-center gap-2" title="View Entry History"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> View Entry History</a>`;
+                        html += `</div>`;
+                        html += `</div>`;
                         html += `</div>`;
                         html += `<div class="flex flex-col gap-2 flex-shrink-0">`;
                         if (isPremium) {{
@@ -947,26 +955,13 @@ def view(server_id):
                         ${{exp.description}}
                     </div>
                     
-                    `;
-
-                if (exp.can_approve || exp.can_reject || exp.can_edit) {{
-                    html += `<div class="flex justify-end items-center gap-3">`;
-                }}
-                
-                if (exp.can_approve) {{
-                    html += `<button onclick="approve('${{exp.id}}', this)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Approve</button>`;
-                }}
-                if (exp.can_reject) {{
-                    html += `<button onclick="reject('${{exp.id}}', this)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Reject</button>`;
-                }}
-                if (exp.can_edit) {{
-                    html += `<button onclick="edit_pending('${{exp.id}}')" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Edit</button>`;
-                }}
-                if (exp.can_approve || exp.can_reject || exp.can_edit) {{ 
-                    html += `</div>`;
-                }}
-                
-                html += `</div>`;
+                    <div class="flex justify-end items-center gap-3">
+                        <button onclick="approve('${{exp.id}}', this)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Approve</button>
+                        <button onclick="reject('${{exp.id}}', this)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Reject</button>
+                        <button onclick="edit_pending('${{exp.id}}')" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Edit</button>
+                    </div>
+                </div>
+                `;
             }});
         }} else {{
             html += `<div class="bg-gray-800/30 p-6 rounded-xl text-center text-gray-500">No pending requests.</div>`;
@@ -1000,8 +995,16 @@ def view(server_id):
                         ${{exp.description}}
                     </div>
                     
-                    <div class="flex justify-between items-center">
-                        <div class="text-xs text-gray-500">Approved by: <a href="/u/${{exp.approver_id}}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">${{exp.approver_name}}</a></div>
+                    <div class="flex justify-between items-end">
+                        <div class="flex flex-col gap-1 text-xs text-gray-500">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>Verified by <a href="/u/${{exp.approver_id}}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">${{exp.approver_name}}</a></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <a href="/experience/${{exp.id}}" class="hover:text-indigo-400 transition-colors flex items-center gap-2" title="View Entry History"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> View Entry History</a>
+                            </div>
+                        </div>
                         <div class="flex gap-3">`;
                 
                 if (exp.can_edit) {{
@@ -1316,6 +1319,7 @@ def reject(exp_id):
     role = get_user_role_in_server(user_id, server_id, discord_token)
     if role not in ["Server Owner", "Administrator"]:
         return jsonify({"error": "Not authorized"}), 403
+    log_history(exp_id, "Rejected", user_id)
     reject_experience(exp_id)
     return jsonify({"success": True})
 
@@ -1368,6 +1372,7 @@ def edit_pending(exp_id):
             if val or field in ["end_month", "end_year", "description"]:  # allow empty for end and description
                 updates[field] = val if val else None
         db.reference(f"Experiences/{exp_id}").update(updates)
+        log_history(exp_id, "Edited Pending", user_id, updates)
         
         if role in ["Server Owner", "Administrator"]:
             return redirect(f"/view/{server_id}")
@@ -1472,6 +1477,7 @@ def edit_accepted(exp_id):
             if val or field in ["end_month", "end_year", "description"]:  # allow empty for end and description
                 updates[field] = val if val else None
         db.reference(f"Experiences/{exp_id}").update(updates)
+        log_history(exp_id, "Edited Approved", user_id, updates)
         return redirect(f"/view/{server_id}")
     
     content = f"""
@@ -1539,7 +1545,7 @@ def end(exp_id):
             except ValueError:
                 return error_page("Invalid date format.", 400)
 
-        update_experience_end_date(exp_id, end_month, end_year)
+        update_experience_end_date(exp_id, end_month, end_year, session.get("user_id"))
         return redirect("/dashboard")
     
     content = f"""
@@ -1585,6 +1591,7 @@ def delete(exp_id):
         if role != "Server Owner":
             return "Not authorized", 403
 
+    log_history(exp_id, "Deleted", user_id)
     reject_experience(exp_id)
     return "Deleted"
 
@@ -1606,6 +1613,7 @@ def delete_pending(exp_id):
     if str(exp.get("user_id")) != user_id:
         return "Not authorized", 403
         
+    log_history(exp_id, "Deleted", user_id)
     exp_ref.delete()
     return "Deleted"
 
@@ -1702,9 +1710,17 @@ def public_timeline(user_id):
                             <a href="/s/{exp['server_id']}" class="hover:underline" target="_blank">{html.escape(exp['server_name'])}</a>
                         </div>
                         <p class="text-gray-300 text-sm leading-relaxed mb-4">{html.escape(exp.get('description', ''))}</p>
-                        <div class="flex items-center gap-2 text-xs text-gray-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            Verified by <a href="/u/{exp.get('approved_by_slug') or exp['approved_by']}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">{html.escape(exp['approved_by_name'])}</a>
+                        <div class="flex flex-col gap-1 text-xs text-gray-500">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>Verified by <a href="/u/{exp.get('approved_by_slug') or exp['approved_by']}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">{html.escape(exp['approved_by_name'])}</a></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <a href="/experience/{exp['id']}" class="hover:text-indigo-400 transition-colors flex items-center gap-2" title="View Entry History">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    View Entry History
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <div class="text-right min-w-[100px]">
@@ -1829,9 +1845,17 @@ def public_server_profile(server_id):
                             <a href="/u/{exp.get('user_slug') or exp['user_id']}" class="hover:underline" target="_blank">{html.escape(exp['user_name'])}</a>
                         </div>
                         <p class="text-gray-300 text-sm leading-relaxed mb-4">{html.escape(exp.get('description', ''))}</p>
-                        <div class="flex items-center gap-2 text-xs text-gray-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            Verified by <a href="/u/{exp.get('approver_slug') or exp.get('approved_by')}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">{html.escape(approver_name)}</a>
+                        <div class="flex flex-col gap-1 text-xs text-gray-500">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>Verified by <a href="/u/{exp.get('approver_slug') or exp.get('approved_by')}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">{html.escape(approver_name)}</a></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <a href="/experience/{exp['id']}" class="hover:text-indigo-400 transition-colors flex items-center gap-2" title="View Entry History">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    View Entry History
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <div class="text-right min-w-[100px]">
@@ -2008,4 +2032,71 @@ def premium_page():
     """
     
     return wrap_page("Premium", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", "text-white bg-gray-800"), ("/logout", "Logout", "")])
+
+@dashboard.route("/experience/<exp_id>")
+def view_experience_history(exp_id):
+    exp = db.reference(f"Experiences/{exp_id}").get()
+    if not exp:
+        return error_page("Experience not found", 404)
+    
+    history = get_experience_history(exp_id)
+    
+    # Format history
+    history_html = ""
+    for h in history:
+        user_info = get_user_info_short(h.get("user_id"))
+        user_link = f'<a href="/u/{user_info["slug"]}" class="text-indigo-400 hover:underline">{html.escape(user_info["name"])}</a>'
+        
+        # Use client-side rendering for local time
+        ts_html = f'<span class="local-time" data-timestamp="{h["timestamp"]}">Loading...</span>'
+        
+        details_html = ""
+        if h.get("details"):
+            details_html = '<div class="mt-2 text-sm text-gray-400 bg-gray-900/50 p-2 rounded">'
+            for k, v in h["details"].items():
+                if v:
+                    details_html += f'<div><span class="font-semibold">{k}:</span> {html.escape(str(v))}</div>'
+            details_html += '</div>'
+            
+        history_html += f"""
+        <div class="relative pl-8 pb-8 border-l border-gray-700 last:border-0 last:pb-0">
+            <div class="absolute left-[-5px] top-0 w-2.5 h-2.5 rounded-full bg-indigo-500"></div>
+            <div class="text-sm text-gray-500 mb-1">{ts_html}</div>
+            <div class="text-white font-medium">{h['action']} by {user_link}</div>
+            {details_html}
+        </div>
+        """
+    
+    if not history_html:
+        history_html = '<div class="text-gray-400">No history available.</div>'
+
+    content = f"""
+    <div class="max-w-3xl mx-auto">
+        <div class="glass p-8 rounded-2xl mb-8">
+            <h1 class="text-2xl font-semibold mb-2 text-white">Experience Entry History</h1>
+            <h2 class="text-xl text-indigo-400 mb-6">{html.escape(exp.get('role_title', 'Unknown Role'))} at {html.escape(exp.get('server_name', 'Unknown Server'))}</h2>
+            
+            <div class="space-y-2">
+                {history_html}
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <a href="/u/{exp.get('user_id')}" class="text-gray-400 hover:text-white transition-colors">&larr; Back to Profile</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {{
+            document.querySelectorAll('.local-time').forEach(el => {{
+                const ts = parseFloat(el.getAttribute('data-timestamp'));
+                if (ts) {{
+                    el.textContent = new Date(ts * 1000).toLocaleString();
+                }}
+            }});
+        }});
+    </script>
+    """
+    
+    return wrap_page("Experience Entry History", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
