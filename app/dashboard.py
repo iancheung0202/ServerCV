@@ -3,6 +3,7 @@ import html
 from time import time
 from datetime import datetime
 import re
+from urllib.parse import quote
 
 from firebase_admin import db
 from concurrent.futures import ThreadPoolExecutor
@@ -122,6 +123,9 @@ def view_dashboard():
         save_user_to_firebase(user, tokens["access_token"])
         session["user_id"] = str(user["id"])
 
+        redirect_to = session.pop("redirect_to", None)
+        if redirect_to:
+            return redirect(redirect_to)
         return redirect("/dashboard")
 
     user_agent = request.headers.get('User-Agent', '').lower()
@@ -157,7 +161,7 @@ def view_dashboard():
             </html>"""
 
     if "discord_token" not in session:
-        return redirect("/login")
+        return redirect(f"/login?redirect_to={quote(request.full_path)}")
 
     discord_token = session['discord_token']
     user = requests_session.get(f"{API_BASE}/users/@me", headers={"Authorization": f"Bearer {discord_token}"}).json()
@@ -448,7 +452,7 @@ def view_dashboard():
 @dashboard.route("/settings", methods=["GET", "POST"])
 def settings():
     if "discord_token" not in session:
-        return redirect("/login")
+        return redirect(f"/login?redirect_to={quote(request.full_path)}")
     
     user = requests_session.get(f"{API_BASE}/users/@me", headers={"Authorization": f"Bearer {session['discord_token']}"}).json()
     user_id = str(user["id"])
@@ -596,7 +600,7 @@ def api_dashboard_guilds():
         current_time = time()
         if user_id in last_requests:
             if current_time - last_requests[user_id] < 5:
-                return jsonify({"error": "Rate limit exceeded. Please wait 5 seconds before making another request."}), 429
+                return jsonify({"error": "Rate limit exceeded. Please wait 5 seconds and reload the page."}), 429
         last_requests[user_id] = current_time
 
     try:
@@ -664,7 +668,7 @@ def api_pending_experiences():
 @dashboard.route("/request/<server_id>", methods=["GET", "POST"])
 def request_endorsement(server_id):
     if "user_id" not in session:
-        return redirect("/login")
+        return redirect(f"/login?redirect_to={quote(request.full_path)}")
     user_id = session["user_id"]
 
     user_data = get_user_data(user_id)
@@ -772,7 +776,7 @@ def request_endorsement(server_id):
 @dashboard.route("/view/<server_id>")
 def view(server_id):
     if "user_id" not in session:
-        return redirect("/login")
+        return redirect(f"/login?redirect_to={quote(request.full_path)}")
     
     content = f"""
     <div class="max-w-4xl mx-auto">
@@ -784,6 +788,8 @@ def view(server_id):
                 </div>
                 <h2 id="server-title" class="text-2xl font-semibold text-white"><span class="animate-pulse bg-gray-700 rounded h-6 w-32 inline-block align-middle ml-2"></span></h2>
             </div>
+
+            <div id="server-info-container"></div>
             
             <div id="server-settings-container"></div>
 
@@ -799,6 +805,7 @@ def view(server_id):
     
     <script>
     const serverId = '{server_id}';
+    const clientId = '{CLIENT_ID}';
     
     function disableBtn(btn) {{
         if (!btn) return;
@@ -821,6 +828,13 @@ def view(server_id):
 
         // Update Title
         document.getElementById('server-title').innerHTML = `Experience Requests for <a href="/s/${{serverId}}" class="hover:text-indigo-400 transition-colors" target="_blank">${{data.server_name}}</a>`;
+
+        // Server ID and Ownership
+        const isOwner = data.is_owner ? '<span class="text-green-400 font-medium">(Server Owner)</span>' : '(Server Administrator)';
+        document.getElementById('server-info-container').innerHTML = `
+            <div class="mb-6">
+                <div class="text-sm text-gray-400">Server ID: <span class="text-gray-200 font-mono">${{serverId}}</span> ${{isOwner}}</div>
+            </div>`;
 
         // Server Settings
         if (data.is_owner) {{
@@ -857,8 +871,43 @@ def view(server_id):
                 <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                     <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
                     Pending Requests
-                </h3>
-                <div class="space-y-4">`;
+                </h3>`;
+                
+        if (!data.bot_in_server) {{
+            html += `
+                <div class="bg-indigo-900/30 border border-indigo-500/30 p-4 rounded-xl mb-6 flex items-start gap-4">
+                    <div class="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-white font-medium mb-1">Get Notified!</h4>
+                        <p class="text-sm text-gray-400 mb-3">Invite our Discord bot to your server to get instant notifications when someone submits an experience request. Run <code class="bg-gray-800 px-1 py-0.5 rounded text-gray-300 text-xs">/setup</code> in your server to configure the notification channel.</p>
+                        <a href="https://discord.com/api/oauth2/authorize?client_id=${{clientId}}&permissions=2048&scope=bot%20applications.commands" target="_blank" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Invite Bot
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                    </div>
+                </div>`;
+        }} else if (!data.notification_channel_id) {{
+            html += `
+                <div class="bg-yellow-900/30 border border-yellow-500/30 p-4 rounded-xl mb-6 flex items-center gap-4">
+                    <div class="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-white font-medium">Setup Required</h4>
+                        <p class="text-sm text-gray-400">Our Discord bot is in your server, but notifications aren't configured. Run <code class="bg-gray-800 px-1 py-0.5 rounded text-gray-300 text-xs">/setup</code> in your server to select a channel.</p>
+                    </div>
+                </div>`;
+        }} else {{
+            html += `
+                <div class="mb-6 flex items-center gap-2 text-sm text-gray-400">
+                    <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Any notifications will be sent to <span class="text-gray-300 font-medium">#${{data.notification_channel_name}}</span> <span class="text-gray-600 text-xs">(${{data.notification_channel_id}})</span></span>
+                </div>`;
+        }}
+
+        html += `<div class="space-y-4">`;
 
         if (data.pending && data.pending.length > 0) {{
             data.pending.forEach(exp => {{
@@ -1039,7 +1088,7 @@ def view(server_id):
     </script>
     """
     
-    return wrap_page(f"Manage - {server_id}", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
+    return wrap_page(f"Manage Server", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
 @dashboard.route("/api/guild/<server_id>")
 def api_server_view(server_id):
@@ -1126,13 +1175,49 @@ def api_server_view(server_id):
             if server_data:
                 server_vanity = server_data.get("vanity_url", "")
 
+        # Check bot status
+        bot_in_server = False
+        notification_channel_name = None
+        notification_channel_id = None
+        
+        try:
+            # Check if bot is in server
+            bot_guild_res = requests_session.get(
+                f"{API_BASE}/guilds/{server_id}",
+                headers={"Authorization": f"Bot {BOT_TOKEN}"}
+            )
+            
+            if bot_guild_res.status_code == 200:
+                bot_in_server = True
+                
+                # Check for notification channel config
+                config_ref = db.reference(f'Request Notification Config/{server_id}/notification_channel')
+                channel_id = config_ref.get()
+                
+                if channel_id:
+                    notification_channel_id = channel_id
+                    # Try to get channel name
+                    channel_res = requests_session.get(
+                        f"{API_BASE}/channels/{channel_id}",
+                        headers={"Authorization": f"Bot {BOT_TOKEN}"}
+                    )
+                    if channel_res.status_code == 200:
+                        notification_channel_name = channel_res.json().get('name')
+                    else:
+                        notification_channel_name = "Unknown Channel"
+        except Exception as e:
+            print(f"Error checking bot status: {e}")
+
         return jsonify({
             "server_name": html.escape(server_name),
             "pending": pending_data,
             "approved": approved_data,
             "is_premium": is_premium,
             "is_owner": is_owner,
-            "server_vanity": server_vanity
+            "server_vanity": server_vanity,
+            "bot_in_server": bot_in_server,
+            "notification_channel_id": notification_channel_id,
+            "notification_channel_name": notification_channel_name
         })
 
     except Exception as e:
@@ -1217,7 +1302,7 @@ def reject(exp_id):
 @dashboard.route("/edit_pending/<exp_id>", methods=["GET", "POST"])
 def edit_pending(exp_id):
     if "user_id" not in session:
-        return redirect("/login")
+        return redirect(f"/login?redirect_to={quote(request.full_path)}")
     user_id = session["user_id"]
     discord_token = session['discord_token']
     exp = db.reference(f"Experiences/{exp_id}").get()
@@ -1319,7 +1404,7 @@ def edit_pending(exp_id):
 @dashboard.route("/edit_accepted/<exp_id>", methods=["GET", "POST"])
 def edit_accepted(exp_id):
     if "user_id" not in session:
-        return redirect("/login")
+        return redirect(f"/login?redirect_to={quote(request.full_path)}")
     user_id = session["user_id"]
     discord_token = session['discord_token']
     exp = db.reference(f"Experiences/{exp_id}").get()
@@ -1721,7 +1806,7 @@ def public_server_profile(server_id):
                     <div class="flex-grow">
                         <h3 class="text-xl font-semibold text-white mb-1">{html.escape(exp['role_title'])}</h3>
                         <div class="text-indigo-400 font-medium mb-2">
-                            <a href="/u/{exp.get('user_slug') or exp['user_id']}" class="hover:underline">{html.escape(exp['user_name'])}</a>
+                            <a href="/u/{exp.get('user_slug') or exp['user_id']}" class="hover:underline" target="_blank">{html.escape(exp['user_name'])}</a>
                         </div>
                         <p class="text-gray-300 text-sm leading-relaxed mb-4">{html.escape(exp.get('description', ''))}</p>
                         <div class="flex items-center gap-2 text-xs text-gray-500">
@@ -1771,7 +1856,7 @@ def activate_premium():
 @dashboard.route("/premium")
 def premium_page():
     if "user_id" not in session:
-        return redirect("/login")
+        return redirect(f"/login?redirect_to={quote(request.full_path)}")
     
     user_id = session["user_id"]
     user_data = get_user_data(user_id)

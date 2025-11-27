@@ -39,6 +39,10 @@ def partners():
 
 @app.route("/login")
 def login():
+    redirect_to = request.args.get("redirect_to")
+    if redirect_to:
+        session["redirect_to"] = redirect_to
+        
     scope = "identify guilds"
     return redirect(
         f"{API_BASE}/oauth2/authorize?client_id={CLIENT_ID}"
