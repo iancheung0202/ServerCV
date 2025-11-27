@@ -339,7 +339,12 @@ def view_dashboard():
                         if (exp.description) {{
                             html += `<p class="text-gray-300 text-sm mb-2">${{exp.description}}</p>`;
                         }}
+                        html += `<div class="flex justify-between items-center">`;
                         html += `<div class="text-xs text-yellow-500 font-medium uppercase tracking-wide">Pending Approval</div>`;
+                        html += `<div class="flex gap-2">`;
+                        html += `<button onclick="editPendingExperience('${{exp.id}}')" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded transition-colors">Edit</button>`;
+                        html += `<button onclick="deletePendingExperience('${{exp.id}}', this)" class="text-xs bg-red-900/50 hover:bg-red-900 text-red-200 px-2 py-1 rounded transition-colors">Delete</button>`;
+                        html += `</div></div>`;
                         html += `</div>`;
                     }});
                     html += '</div>';
@@ -349,6 +354,19 @@ def view_dashboard():
                     console.error('Error loading pending:', error);
                     document.getElementById('pending-experiences').innerHTML = '<div class="text-red-400">Failed to load pending requests.</div>';
                 }});
+
+            function editPendingExperience(expId) {{
+                window.location.href = `/edit_pending/${{expId}}`;
+            }}
+            function deletePendingExperience(expId, btn) {{
+                if (confirm('Are you sure you want to delete this pending request?')) {{
+                    if (btn) {{
+                        btn.disabled = true;
+                        btn.innerHTML = '...';
+                    }}
+                    fetch(`/delete_pending/${{expId}}`, {{method: 'POST'}}).then(() => location.reload());
+                }}
+            }}
 
             function submitRequest(btn) {{
                 const select = document.getElementById('request-select');
@@ -805,19 +823,28 @@ def view(server_id):
         document.getElementById('server-title').innerHTML = `Experience Requests for <a href="/s/${{serverId}}" class="hover:text-indigo-400 transition-colors" target="_blank">${{data.server_name}}</a>`;
 
         // Server Settings
-        if (data.is_owner && data.is_premium) {{
+        if (data.is_owner) {{
+            const isPremium = data.is_premium;
+            const disabledAttr = isPremium ? '' : 'disabled';
+            const opacityClass = isPremium ? '' : 'opacity-50 cursor-not-allowed';
+            const premiumMessage = isPremium ? '' : '<p class="text-sm text-yellow-500 mt-1">Upgrade to Premium to set a custom URL.</p>';
+            const buttonHtml = isPremium 
+                ? `<button onclick="saveServerSettings(this)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors h-[42px]">Save</button>`
+                : `<a href="/premium" class="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors h-[42px] flex items-center justify-center whitespace-nowrap">Get Premium</a>`;
+
             document.getElementById('server-settings-container').innerHTML = `
             <div class="glass p-6 rounded-xl mb-8 border border-yellow-500/30">
-                <h3 class="text-xl font-semibold text-white mb-4">Server Settings (Premium)</h3>
+                <h3 class="text-xl font-semibold text-white mb-4">Server Settings ${{isPremium ? '(Premium)' : '(Premium Only)'}}</h3>
                 <div class="flex flex-col sm:flex-row items-end gap-4">
                     <div class="flex-grow w-full">
                         <label class="block text-gray-400 text-sm font-bold mb-2">Server Vanity URL</label>
                         <div class="flex items-center gap-2">
                             <span class="text-gray-500 whitespace-nowrap">servercv.com/s/</span>
-                            <input type="text" id="server-vanity" value="${{data.server_vanity || ''}}" class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500" placeholder="custom_server_name">
+                            <input type="text" id="server-vanity" value="${{data.server_vanity || ''}}" ${{disabledAttr}} class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 ${{opacityClass}}" placeholder="custom_server_name">
                         </div>
+                        ${{premiumMessage}}
                     </div>
-                    <button onclick="saveServerSettings(this)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors h-[42px]">Save</button>
+                    ${{buttonHtml}}
                 </div>
             </div>`;
         }}
@@ -825,15 +852,15 @@ def view(server_id):
         let html = '';
 
         // Pending
-        if (data.pending && data.pending.length > 0) {{
-            html += `
+        html += `
             <div>
                 <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                     <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
                     Pending Requests
                 </h3>
                 <div class="space-y-4">`;
-            
+
+        if (data.pending && data.pending.length > 0) {{
             data.pending.forEach(exp => {{
                 html += `
                 <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 border-l-4 border-l-yellow-500">
@@ -872,21 +899,21 @@ def view(server_id):
                 
                 html += `</div>`;
             }});
-            html += '</div></div>';
         }} else {{
             html += `<div class="bg-gray-800/30 p-6 rounded-xl text-center text-gray-500">No pending requests.</div>`;
         }}
+        html += '</div></div>';
 
         // Approved
-        if (data.approved && data.approved.length > 0) {{
-            html += `
+        html += `
             <div class="mt-8">
                 <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                     <span class="w-2 h-2 bg-green-500 rounded-full"></span>
                     Accepted Experiences
                 </h3>
                 <div class="space-y-4">`;
-            
+
+        if (data.approved && data.approved.length > 0) {{
             data.approved.forEach(exp => {{
                 html += `
                 <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 opacity-75 hover:opacity-100 transition-opacity">
@@ -917,10 +944,10 @@ def view(server_id):
                 
                 html += `</div></div></div>`;
             }});
-            html += '</div></div>';
         }} else {{
-            html += `<div class="mt-8 bg-gray-800/30 p-6 rounded-xl text-center text-gray-500">No accepted experiences.</div>`;
+            html += `<div class="bg-gray-800/30 p-6 rounded-xl text-center text-gray-500">No accepted experiences.</div>`;
         }}
+        html += '</div></div>';
 
         document.getElementById('view-content').innerHTML = html;
     }}
@@ -1198,7 +1225,9 @@ def edit_pending(exp_id):
         return error_page("Not found", 404)
     server_id = exp["server_id"]
     role = get_user_role_in_server(user_id, server_id, discord_token)
-    if role not in ["Server Owner", "Administrator"]:
+    
+    # Allow if server owner/admin OR if it's the user's own request
+    if role not in ["Server Owner", "Administrator"] and str(exp.get("user_id")) != user_id:
         return error_page("Not authorized", 403)
     
     exp_user_id = str(exp["user_id"])
@@ -1234,7 +1263,11 @@ def edit_pending(exp_id):
             if val or field in ["end_month", "end_year", "description"]:  # allow empty for end and description
                 updates[field] = val if val else None
         db.reference(f"Experiences/{exp_id}").update(updates)
-        return redirect(f"/view/{server_id}")
+        
+        if role in ["Server Owner", "Administrator"]:
+            return redirect(f"/view/{server_id}")
+        else:
+            return redirect("/dashboard")
     
     content = f"""
     <div class="max-w-2xl mx-auto">
@@ -1439,11 +1472,36 @@ def delete(exp_id):
     exp = db.reference(f"Experiences/{exp_id}").get()
     if not exp or exp.get("status") != "approved":
         return "Not found or not approved", 404
-    server_id = exp["server_id"]
-    role = get_user_role_in_server(user_id, server_id, discord_token)
-    if role != "Server Owner":
-        return "Not authorized", 403
+    
+    # Allow if user is the creator OR Server Owner
+    if str(exp.get("user_id")) != user_id:
+        server_id = exp["server_id"]
+        role = get_user_role_in_server(user_id, server_id, discord_token)
+        if role != "Server Owner":
+            return "Not authorized", 403
+
     reject_experience(exp_id)
+    return "Deleted"
+
+@dashboard.route("/delete_pending/<exp_id>", methods=["POST"])
+def delete_pending(exp_id):
+    if "user_id" not in session:
+        return "Not logged in", 401
+    user_id = session["user_id"]
+    
+    exp_ref = db.reference(f"Experiences/{exp_id}")
+    exp = exp_ref.get()
+    if not exp:
+        return "Not found", 404
+        
+    if exp.get("status") != "pending":
+        return "Not a pending request", 400
+        
+    # Allow if user is the creator
+    if str(exp.get("user_id")) != user_id:
+        return "Not authorized", 403
+        
+    exp_ref.delete()
     return "Deleted"
 
 @dashboard.route("/u/<user_id>")
