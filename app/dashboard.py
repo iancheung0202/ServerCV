@@ -77,20 +77,24 @@ def get_permissions_list(perm_int):
             perms.append(name)
     return perms
 
-def get_user_role_in_server(user_id, server_id, discord_token):
+def get_user_role_and_guild(user_id, server_id, discord_token):
     guilds = requests_session.get(f"{API_BASE}/users/@me/guilds", headers={"Authorization": f"Bearer {discord_token}"}).json()
     for g in guilds:
         if str(g['id']) == server_id:
             perms = get_permissions_list(int(g.get("permissions", 0)))
             if g.get("owner"):
-                return "Server Owner"
+                return "Server Owner", g
             elif "Administrator" in perms:
-                return "Administrator"
+                return "Administrator", g
             elif any(perm in perms for perm in MOD_PERMS):
-                return "Moderator"
+                return "Moderator", g
             else:
-                return "Member"
-    return None  # not in server
+                return "Member", g
+    return None, None
+
+def get_user_role_in_server(user_id, server_id, discord_token):
+    role, _ = get_user_role_and_guild(user_id, server_id, discord_token)
+    return role
 
 dashboard = Blueprint('dashboard', __name__)
 
@@ -658,7 +662,7 @@ def request_endorsement(server_id):
             return redirect("/premium")
 
     discord_token = session['discord_token']
-    role = get_user_role_in_server(user_id, server_id, discord_token)
+    role, guild_data = get_user_role_and_guild(user_id, server_id, discord_token)
     if role not in ["Server Owner", "Administrator", "Moderator"]:
         return error_page("Not authorized", 403)
     server_name = request.args.get("name", "Unknown Server")
@@ -696,12 +700,7 @@ def request_endorsement(server_id):
             return error_page(f"Description exceeds limit of {limit} characters.", 400)
         
         # Get server icon
-        guilds = requests_session.get(f"{API_BASE}/users/@me/guilds", headers={"Authorization": f"Bearer {discord_token}"}).json()
-        server_icon = None
-        for g in guilds:
-            if str(g['id']) == server_id:
-                server_icon = g.get("icon")
-                break
+        server_icon = guild_data.get("icon") if guild_data else None
                 
         save_experience_request(user_id, server_id, server_name, role_title, start_month, request.form.get("start_year"), end_month, end_year, description, role, server_icon)
         return redirect("/dashboard")
@@ -796,13 +795,173 @@ def view(server_id):
         btn.innerHTML = '<svg class="animate-spin h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
     }}
 
+    function renderView(data) {{
+        if (data.error) {{
+            document.getElementById('view-content').innerHTML = `<div class="text-red-400">${{data.error}}</div>`;
+            return;
+        }}
+
+        // Update Title
+        document.getElementById('server-title').innerHTML = `Experience Requests for <a href="/s/${{serverId}}" class="hover:text-indigo-400 transition-colors" target="_blank">${{data.server_name}}</a>`;
+
+        // Server Settings
+        if (data.is_owner && data.is_premium) {{
+            document.getElementById('server-settings-container').innerHTML = `
+            <div class="glass p-6 rounded-xl mb-8 border border-yellow-500/30">
+                <h3 class="text-xl font-semibold text-white mb-4">Server Settings (Premium)</h3>
+                <div class="flex flex-col sm:flex-row items-end gap-4">
+                    <div class="flex-grow w-full">
+                        <label class="block text-gray-400 text-sm font-bold mb-2">Server Vanity URL</label>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-500 whitespace-nowrap">servercv.com/s/</span>
+                            <input type="text" id="server-vanity" value="${{data.server_vanity || ''}}" class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500" placeholder="custom_server_name">
+                        </div>
+                    </div>
+                    <button onclick="saveServerSettings(this)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors h-[42px]">Save</button>
+                </div>
+            </div>`;
+        }}
+
+        let html = '';
+
+        // Pending
+        if (data.pending && data.pending.length > 0) {{
+            html += `
+            <div>
+                <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    Pending Requests
+                </h3>
+                <div class="space-y-4">`;
+            
+            data.pending.forEach(exp => {{
+                html += `
+                <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 border-l-4 border-l-yellow-500">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <div class="font-semibold text-lg text-white">${{exp.role_title}}</div>
+                            <div class="text-indigo-400 text-sm">User: <a href="/u/${{exp.user_id}}" target="_blank" class="hover:underline hover:text-indigo-300">${{exp.user_name}}</a> <span class="text-gray-500">(${{exp.user_id}})</span></div>
+                        </div>
+                        <div class="text-sm font-mono text-gray-400 bg-gray-900/50 px-3 py-1 rounded-full">
+                            ${{exp.start_month}}/${{exp.start_year}} - ${{exp.end_month}}/${{exp.end_year}}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-900/30 p-4 rounded-lg text-gray-300 text-sm mb-4">
+                        ${{exp.description}}
+                    </div>
+                    
+                    `;
+
+                if (exp.can_approve || exp.can_reject || exp.can_edit) {{
+                    html += `<div class="flex justify-end items-center gap-3">`;
+                }}
+                
+                if (exp.can_approve) {{
+                    html += `<button onclick="approve('${{exp.id}}', this)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Approve</button>`;
+                }}
+                if (exp.can_reject) {{
+                    html += `<button onclick="reject('${{exp.id}}', this)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Reject</button>`;
+                }}
+                if (exp.can_edit) {{
+                    html += `<button onclick="edit_pending('${{exp.id}}')" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Edit</button>`;
+                }}
+                if (exp.can_approve || exp.can_reject || exp.can_edit) {{ 
+                    html += `</div>`;
+                }}
+                
+                html += `</div>`;
+            }});
+            html += '</div></div>';
+        }} else {{
+            html += `<div class="bg-gray-800/30 p-6 rounded-xl text-center text-gray-500">No pending requests.</div>`;
+        }}
+
+        // Approved
+        if (data.approved && data.approved.length > 0) {{
+            html += `
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    Accepted Experiences
+                </h3>
+                <div class="space-y-4">`;
+            
+            data.approved.forEach(exp => {{
+                html += `
+                <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 opacity-75 hover:opacity-100 transition-opacity">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <div class="font-semibold text-lg text-white">${{exp.role_title}}</div>
+                            <div class="text-indigo-400 text-sm">User: <a href="/u/${{exp.user_id}}" target="_blank" class="hover:underline hover:text-indigo-300">${{exp.user_name}}</a> <span class="text-gray-500">(${{exp.user_id}})</span></div>
+                        </div>
+                        <div class="text-sm font-mono text-gray-400 bg-gray-900/50 px-3 py-1 rounded-full">
+                            ${{exp.start_month}}/${{exp.start_year}} - ${{exp.end_display}}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-900/30 p-4 rounded-lg text-gray-300 text-sm mb-4">
+                        ${{exp.description}}
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="text-xs text-gray-500">Approved by: <a href="/u/${{exp.approver_id}}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">${{exp.approver_name}}</a></div>
+                        <div class="flex gap-3">`;
+                
+                if (exp.can_edit) {{
+                    html += `<button onclick="edit_accepted('${{exp.id}}')" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors">Edit</button>`;
+                }}
+                if (exp.can_delete) {{
+                    html += `<button onclick="delete_experience('${{exp.id}}', this)" class="bg-red-900/50 hover:bg-red-900 text-red-200 px-3 py-1.5 rounded text-xs font-medium transition-colors">Delete</button>`;
+                }}
+                
+                html += `</div></div></div>`;
+            }});
+            html += '</div></div>';
+        }} else {{
+            html += `<div class="mt-8 bg-gray-800/30 p-6 rounded-xl text-center text-gray-500">No accepted experiences.</div>`;
+        }}
+
+        document.getElementById('view-content').innerHTML = html;
+    }}
+
+    function loadData() {{
+        fetch(`/api/guild/${{serverId}}`)
+            .then(res => res.json())
+            .then(data => renderView(data))
+            .catch(err => {{
+                console.error(err);
+                document.getElementById('view-content').innerHTML = '<div class="text-red-400">Failed to load content.</div>';
+            }});
+    }}
+
     function approve(id, btn) {{
         disableBtn(btn);
-        fetch(`/approve/${{id}}`, {{method: 'POST'}}).then(() => location.reload());
+        fetch(`/approve/${{id}}`, {{method: 'POST'}})
+            .then(res => res.json())
+            .then(data => {{
+                if (data.success) {{
+                    loadData();
+                }} else {{
+                    alert(data.error || 'Failed');
+                    location.reload();
+                }}
+            }})
+            .catch(() => location.reload());
     }}
     function reject(id, btn) {{
         disableBtn(btn);
-        fetch(`/reject/${{id}}`, {{method: 'POST'}}).then(() => location.reload());
+        fetch(`/reject/${{id}}`, {{method: 'POST'}})
+            .then(res => res.json())
+            .then(data => {{
+                if (data.success) {{
+                    loadData();
+                }} else {{
+                    alert(data.error || 'Failed');
+                    location.reload();
+                }}
+            }})
+            .catch(() => location.reload());
     }}
     function edit_pending(id) {{
         window.location.href = `/edit_pending/${{id}}`;
@@ -849,141 +1008,7 @@ def view(server_id):
         }});
     }}
 
-    fetch(`/api/guild/${{serverId}}`)
-        .then(res => res.json())
-        .then(data => {{
-            if (data.error) {{
-                document.getElementById('view-content').innerHTML = `<div class="text-red-400">${{data.error}}</div>`;
-                return;
-            }}
-
-            // Update Title
-            document.getElementById('server-title').innerHTML = `Experience Requests for <a href="/s/${{serverId}}" class="hover:text-indigo-400 transition-colors" target="_blank">${{data.server_name}}</a>`;
-
-            // Server Settings
-            if (data.is_owner && data.is_premium) {{
-                document.getElementById('server-settings-container').innerHTML = `
-                <div class="glass p-6 rounded-xl mb-8 border border-yellow-500/30">
-                    <h3 class="text-xl font-semibold text-white mb-4">Server Settings (Premium)</h3>
-                    <div class="flex flex-col sm:flex-row items-end gap-4">
-                        <div class="flex-grow w-full">
-                            <label class="block text-gray-400 text-sm font-bold mb-2">Server Vanity URL</label>
-                            <div class="flex items-center gap-2">
-                                <span class="text-gray-500 whitespace-nowrap">servercv.com/s/</span>
-                                <input type="text" id="server-vanity" value="${{data.server_vanity || ''}}" class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500" placeholder="custom_server_name">
-                            </div>
-                        </div>
-                        <button onclick="saveServerSettings(this)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors h-[42px]">Save</button>
-                    </div>
-                </div>`;
-            }}
-
-            let html = '';
-
-            // Pending
-            if (data.pending && data.pending.length > 0) {{
-                html += `
-                <div>
-                    <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                        <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                        Pending Requests
-                    </h3>
-                    <div class="space-y-4">`;
-                
-                data.pending.forEach(exp => {{
-                    html += `
-                    <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 border-l-4 border-l-yellow-500">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <div class="font-semibold text-lg text-white">${{exp.role_title}}</div>
-                                <div class="text-indigo-400 text-sm">User: <a href="/u/${{exp.user_id}}" target="_blank" class="hover:underline hover:text-indigo-300">${{exp.user_name}}</a> <span class="text-gray-500">(${{exp.user_id}})</span></div>
-                            </div>
-                            <div class="text-sm font-mono text-gray-400 bg-gray-900/50 px-3 py-1 rounded-full">
-                                ${{exp.start_month}}/${{exp.start_year}} - ${{exp.end_month}}/${{exp.end_year}}
-                            </div>
-                        </div>
-                        
-                        <div class="bg-gray-900/30 p-4 rounded-lg text-gray-300 text-sm mb-4">
-                            ${{exp.description}}
-                        </div>
-                        
-                        `;
-
-                    if (exp.can_approve || exp.can_reject || exp.can_edit) {{
-                        html += `<div class="flex justify-end items-center gap-3">`;
-                    }}
-                    
-                    if (exp.can_approve) {{
-                        html += `<button onclick="approve('${{exp.id}}', this)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Approve</button>`;
-                    }}
-                    if (exp.can_reject) {{
-                        html += `<button onclick="reject('${{exp.id}}', this)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Reject</button>`;
-                    }}
-                    if (exp.can_edit) {{
-                        html += `<button onclick="edit_pending('${{exp.id}}')" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Edit</button>`;
-                    }}
-                    if (exp.can_approve || exp.can_reject || exp.can_edit) {{ 
-                        html += `</div>`;
-                    }}
-                    
-                    html += `</div>`;
-                }});
-                html += '</div></div>';
-            }} else {{
-                html += `<div class="bg-gray-800/30 p-6 rounded-xl text-center text-gray-500">No pending requests.</div>`;
-            }}
-
-            // Approved
-            if (data.approved && data.approved.length > 0) {{
-                html += `
-                <div class="mt-8">
-                    <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                        Accepted Experiences
-                    </h3>
-                    <div class="space-y-4">`;
-                
-                data.approved.forEach(exp => {{
-                    html += `
-                    <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 opacity-75 hover:opacity-100 transition-opacity">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <div class="font-semibold text-lg text-white">${{exp.role_title}}</div>
-                                <div class="text-indigo-400 text-sm">User: <a href="/u/${{exp.user_id}}" target="_blank" class="hover:underline hover:text-indigo-300">${{exp.user_name}}</a> <span class="text-gray-500">(${{exp.user_id}})</span></div>
-                            </div>
-                            <div class="text-sm font-mono text-gray-400 bg-gray-900/50 px-3 py-1 rounded-full">
-                                ${{exp.start_month}}/${{exp.start_year}} - ${{exp.end_display}}
-                            </div>
-                        </div>
-                        
-                        <div class="bg-gray-900/30 p-4 rounded-lg text-gray-300 text-sm mb-4">
-                            ${{exp.description}}
-                        </div>
-                        
-                        <div class="flex justify-between items-center">
-                            <div class="text-xs text-gray-500">Approved by: <a href="/u/${{exp.approver_id}}" target="_blank" class="hover:underline hover:text-indigo-400 transition-colors">${{exp.approver_name}}</a></div>
-                            <div class="flex gap-3">`;
-                    
-                    if (exp.can_edit) {{
-                        html += `<button onclick="edit_accepted('${{exp.id}}')" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors">Edit</button>`;
-                    }}
-                    if (exp.can_delete) {{
-                        html += `<button onclick="delete_experience('${{exp.id}}', this)" class="bg-red-900/50 hover:bg-red-900 text-red-200 px-3 py-1.5 rounded text-xs font-medium transition-colors">Delete</button>`;
-                    }}
-                    
-                    html += `</div></div></div>`;
-                }});
-                html += '</div></div>';
-            }} else {{
-                html += `<div class="mt-8 bg-gray-800/30 p-6 rounded-xl text-center text-gray-500">No accepted experiences.</div>`;
-            }}
-
-            document.getElementById('view-content').innerHTML = html;
-        }})
-        .catch(err => {{
-            console.error(err);
-            document.getElementById('view-content').innerHTML = '<div class="text-red-400">Failed to load content.</div>';
-        }});
+    loadData();
     </script>
     """
     
@@ -997,7 +1022,7 @@ def api_server_view(server_id):
     discord_token = session['discord_token']
     
     try:
-        role = get_user_role_in_server(user_id, server_id, discord_token)
+        role, guild_data = get_user_role_and_guild(user_id, server_id, discord_token)
         if role not in ["Server Owner", "Administrator"]:
             return jsonify({"error": "Not authorized"}), 403
         
@@ -1006,12 +1031,7 @@ def api_server_view(server_id):
         approved_list = [exp for exp in all_exp if exp.get("status") == "approved"]
         
         # Get server name
-        guilds = requests_session.get(f"{API_BASE}/users/@me/guilds", headers={"Authorization": f"Bearer {discord_token}"}).json()
-        server_name = "Unknown Server"
-        for g in guilds:
-            if str(g['id']) == server_id:
-                server_name = g.get('name', 'Unknown Server')
-                break
+        server_name = guild_data.get("name", "Unknown Server") if guild_data else "Unknown Server"
         
         # Process pending
         pending_data = []
@@ -1147,25 +1167,25 @@ def approve(exp_id):
     else:
         can_approve = False
     if not can_approve:
-        return "Cannot approve this request", 403
+        return jsonify({"error": "Cannot approve this request"}), 403
     approve_experience(exp_id, user_id)
-    return "Approved"
+    return jsonify({"success": True})
 
 @dashboard.route("/reject/<exp_id>", methods=["POST"])
 def reject(exp_id):
     if "user_id" not in session:
-        return "Not logged in", 401
+        return jsonify({"error": "Not logged in"}), 401
     user_id = session["user_id"]
     discord_token = session['discord_token']
     exp = db.reference(f"Experiences/{exp_id}").get()
     if not exp:
-        return "Not found", 404
+        return jsonify({"error": "Not found"}), 404
     server_id = exp["server_id"]
     role = get_user_role_in_server(user_id, server_id, discord_token)
     if role not in ["Server Owner", "Administrator"]:
-        return "Not authorized", 403
+        return jsonify({"error": "Not authorized"}), 403
     reject_experience(exp_id)
-    return "Rejected"
+    return jsonify({"success": True})
 
 @dashboard.route("/edit_pending/<exp_id>", methods=["GET", "POST"])
 def edit_pending(exp_id):
