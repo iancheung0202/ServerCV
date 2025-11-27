@@ -148,10 +148,30 @@ def view_dashboard():
                 <meta property="og:type" content="website">
                 <meta property="og:site_name" content="ServerCV">
                 <meta property="og:image" content="https://servercv.com/assets/logo.png">
+                <meta property="og:url" content="https://servercv.com/dashboard">
+                <meta name="theme-color" content="#5A4BEB">
                 <meta name="twitter:card" content="summary">
                 <meta name="twitter:title" content="ServerCV | Show Your Verified Discord Experience">
                 <meta name="twitter:description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
                 <meta name="twitter:image" content="https://servercv.com/assets/logo.png">
+                <link rel="icon" href="https://servercv.com/assets/favicon.ico" sizes="48x48" type="image/x-icon">
+                <link rel="icon" href="https://servercv.com/assets/icon.png" sizes="1024x1024" type="image/png">
+                <link rel="apple-touch-icon" href="https://servercv.com/assets/apple-icon.png" sizes="180x180" type="image/png">
+                <link rel="canonical" href="https://servercv.com/dashboard">
+                <script type="application/ld+json">
+                {
+                "@context": "https://schema.org",
+                "@type": "WebPage",
+                "name": "Dashboard | ServerCV",
+                "url": "https://servercv.com/dashboard",
+                "description": "Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.",
+                "publisher": {
+                    "@type": "Organization",
+                    "name": "ServerCV",
+                    "logo": "https://servercv.com/assets/logo.png"
+                }
+                }
+                </script>
             </head>
             <body>
                 <h1>ServerCV - Professional Discord Staff Portfolios</h1>
