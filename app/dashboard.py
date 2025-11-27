@@ -136,22 +136,22 @@ def view_dashboard():
         return """<!DOCTYPE html>
             <html lang="en">
             <head>
-                <title>ServerCV | Professional Discord Resumes</title>
+                <title>ServerCV | Show Your Verified Discord Experience</title>
                 <meta name="description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
                 <meta name="author" content="ServerCV">
                 <meta name="keywords" content="Discord Resume, Discord Portfolio, Discord Staff, Server Contributions, Discord Experience, Verified History, Discord Community, Staff Application, ServerCV">
                 <meta name="creator" content="ServerCV">
                 <meta name="publisher" content="ServerCV">
                 <meta name="robots" content="index, follow">
-                <meta property="og:title" content="ServerCV | Professional Discord Resumes">
+                <meta property="og:title" content="ServerCV | Show Your Verified Discord Experience">
                 <meta property="og:description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
                 <meta property="og:type" content="website">
                 <meta property="og:site_name" content="ServerCV">
-                <meta property="og:image" content="https://i.imgur.com/t54Mxdx.png">
+                <meta property="og:image" content="https://servercv.com/assets/logo.png">
                 <meta name="twitter:card" content="summary">
-                <meta name="twitter:title" content="ServerCV | Professional Discord Resumes">
+                <meta name="twitter:title" content="ServerCV | Show Your Verified Discord Experience">
                 <meta name="twitter:description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
-                <meta name="twitter:image" content="https://i.imgur.com/t54Mxdx.png">
+                <meta name="twitter:image" content="https://servercv.com/assets/logo.png">
             </head>
             <body>
                 <h1>ServerCV - Professional Discord Staff Portfolios</h1>
