@@ -99,6 +99,19 @@ class Experience(commands.Cog):
         }
         if role:
             update_data['notification_role'] = str(role.id)
+
+        try:
+            channel_test = self.bot.get_channel(channel.id)
+            if not channel_test:
+                channel_test = await self.bot.fetch_channel(channel.id)
+            await channel_test.send(embed=discord.Embed(
+                title="What is this?",
+                description=f"This channel has been set up to receive notifications for new experience requests on https://servercv.com/s/{server_id}.",
+                color=discord.Color.green(),
+            ))
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Failed to send test message to {channel.mention}. Please make sure the bot's permissions allow sending messages in that channel.", ephemeral=True)
+            return
             
         db.reference(f'Request Notification Config/{server_id}').update(update_data)
         

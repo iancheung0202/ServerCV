@@ -1204,7 +1204,7 @@ def api_server_view(server_id):
                     if channel_res.status_code == 200:
                         notification_channel_name = channel_res.json().get('name')
                     else:
-                        notification_channel_name = "Unknown Channel"
+                        notification_channel_name = "bot cannot see/view the channel. double check permissions."
         except Exception as e:
             print(f"Error checking bot status: {e}")
 
