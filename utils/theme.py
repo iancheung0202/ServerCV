@@ -1,6 +1,6 @@
 import html
 
-def get_theme_html_head(page_title="Dashboard", favicon_url="https://servercv.com/assets/icon.png"):
+def get_theme_html_head(page_title="Dashboard", favicon_url="https://servercv.com/assets/icon.png", csrf_token=None):
     """
     Returns the HTML head section with Tailwind CSS and Google Fonts
     """
@@ -8,6 +8,7 @@ def get_theme_html_head(page_title="Dashboard", favicon_url="https://servercv.co
     return f"""
     <head>
         <meta charset="UTF-8">
+        {f'<meta name="csrf-token" content="{csrf_token}">' if csrf_token else ''}
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{page_title} | ServerCV</title>
         <meta name="description" content="{description}">
@@ -111,14 +112,14 @@ def get_navbar(title="ServerCV", nav_links=None):
     """
 
 
-def wrap_page(title, content, nav_links=None, favicon_url=None):
+def wrap_page(title, content, nav_links=None, favicon_url=None, csrf_token=None):
     """
     Wraps content in a complete HTML page
     """
     if nav_links is None:
         nav_links = [("/dashboard", "Dashboard", "")]
         
-    head = get_theme_html_head(title, favicon_url if favicon_url else "https://servercv.com/assets/icon.png")
+    head = get_theme_html_head(title, favicon_url if favicon_url else "https://servercv.com/assets/icon.png", csrf_token=csrf_token)
     navbar = get_navbar("ServerCV", nav_links)
     
     return f"""

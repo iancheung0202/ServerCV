@@ -1,11 +1,15 @@
 import os
 
-from flask import Flask, redirect, request, session, abort, render_template
+from flask import Flask, redirect, request, session, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 from config.settings import API_BASE, CLIENT_ID, REDIRECT_URI
 
-from app.dashboard import dashboard
+from app.dashboard import dashboard, limiter
 
 app = Flask(__name__, static_url_path="")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=1, x_host=1, x_port=1)
+
+limiter.init_app(app)
 app.secret_key = os.urandom(24)
 app.url_map.strict_slashes = False
 
@@ -20,6 +24,10 @@ def page_not_found(e):
 @app.errorhandler(500)
 def internal_server_error(e):
     return render_template("500.html"), 500
+
+@app.errorhandler(429)
+def too_many_requests(e):
+    return render_template("429.html"), 429
 
 @app.route("/")
 def home():

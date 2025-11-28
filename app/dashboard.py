@@ -1,15 +1,18 @@
-import requests
 import html
 from time import time
 from datetime import datetime
 import re
+import secrets
 from urllib.parse import quote
 
 from firebase_admin import db
 from concurrent.futures import ThreadPoolExecutor
 from flask import Blueprint, request, session, redirect, jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_limiter.errors import RateLimitExceeded
 
-from config.settings import API_BASE, BOT_TOKEN, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, PAYPAL_CLIENT_ID, PREMIUM_ONE_TIME_PRICE
+from config.settings import API_BASE, BOT_TOKEN, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_API_BASE, PREMIUM_ONE_TIME_PRICE
 from utils.firebase import save_user_to_firebase, save_experience_request, get_user_experiences, approve_experience, reject_experience, update_experience_end_date, get_all_experiences_for_server, get_user_data, log_history, get_experience_history, get_user_info_short
 from utils.request import requests_session
 from utils.theme import wrap_page, error_page
@@ -60,16 +63,11 @@ PERMISSIONS = {
 
 MOD_PERMS = ["Manage Channels", "Manage Guild", "Kick Members", "Ban Members", "Manage Messages", "Manage Nicknames", "Manage Roles", "Manage Webhooks"]
 
-# Feature Limits
 EXP_LIMIT_FREE = 5
-
 DESC_LIMIT_FREE = 200
 DESC_LIMIT_PREMIUM = 3000
-
 SOCIAL_LIMIT_FREE = 3
 SOCIAL_LIMIT_PREMIUM = 10
-
-last_requests = {}
 
 def get_permissions_list(perm_int):
     perms = []
@@ -99,7 +97,35 @@ def get_user_role_in_server(user_id, server_id, discord_token):
 
 dashboard = Blueprint('dashboard', __name__)
 
+limiter = Limiter(key_func=lambda: session.get("user_id") or get_remote_address())
+
+@dashboard.errorhandler(RateLimitExceeded)
+def handle_rate_limit_error(e):
+    if request.path.startswith("/api/") or request.path.startswith("/pin/") or request.path.startswith("/unpin/") or request.path.startswith("/approve/") or request.path.startswith("/reject/") or request.path.startswith("/delete/"):
+         return jsonify({"error": "You are doing that too fast. Please wait a moment."}), 429
+    return error_page("You are visiting pages too quickly. Please wait a few seconds.", 429)
+
+def get_csrf_token():
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(16)
+    return session['csrf_token']
+
+@dashboard.before_request
+def check_csrf():
+    if request.method == "POST":
+        token = session.get('csrf_token')
+        if not token:
+            return error_page("CSRF token missing", 403)
+        
+        submitted_token = request.form.get('csrf_token')
+        if not submitted_token:
+            submitted_token = request.headers.get('X-CSRF-Token')
+            
+        if not submitted_token or submitted_token != token:
+            return error_page("CSRF validation failed", 403)
+
 @dashboard.route("/dashboard")
+@limiter.limit("10 per minute")
 def view_dashboard():
     code = request.args.get("code")
     if code:
@@ -189,9 +215,6 @@ def view_dashboard():
     user_data = get_user_data(str(user["id"]))
     is_premium = user_data.get('premium', False)
     
-    premium_price = PREMIUM_ONE_TIME_PRICE
-    user_id = str(user["id"])
-    
     profile_url = f"/u/{user['id']}"
     if is_premium and user_data.get("vanity_url"):
         profile_url = f"/u/{user_data['vanity_url']}"
@@ -234,6 +257,7 @@ def view_dashboard():
         <script>
             const userId = '{user["id"]}';
             const isPremium = {str(is_premium).lower()};
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
             let experienceCount = 0;
 
             function getPremiumButtonHtml() {{
@@ -396,7 +420,7 @@ def view_dashboard():
                         btn.disabled = true;
                         btn.innerHTML = '...';
                     }}
-                    fetch(`/delete_pending/${{expId}}`, {{method: 'POST'}}).then(() => location.reload());
+                    fetch(`/delete_pending/${{expId}}`, {{method: 'POST', headers: {{'X-CSRF-Token': csrfToken}}}}).then(() => location.reload());
                 }}
             }}
 
@@ -437,7 +461,7 @@ def view_dashboard():
                     btn.disabled = true;
                     btn.innerHTML = '...';
                 }}
-                fetch(`/pin/${{expId}}`, {{method: 'POST'}})
+                fetch(`/pin/${{expId}}`, {{method: 'POST', headers: {{'X-CSRF-Token': csrfToken}}}})
                     .then(res => res.json())
                     .then(data => {{
                         if (data.error) alert(data.error);
@@ -449,7 +473,7 @@ def view_dashboard():
                     btn.disabled = true;
                     btn.innerHTML = '...';
                 }}
-                fetch(`/unpin/${{expId}}`, {{method: 'POST'}})
+                fetch(`/unpin/${{expId}}`, {{method: 'POST', headers: {{'X-CSRF-Token': csrfToken}}}})
                     .then(res => res.json())
                     .then(data => {{
                         if (data.error) alert(data.error);
@@ -469,15 +493,16 @@ def view_dashboard():
                         }}
                         btn.innerHTML = '<svg class="animate-spin h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
                     }}
-                    fetch(`/delete/${{expId}}`, {{method: 'POST'}}).then(() => location.reload());
+                    fetch(`/delete/${{expId}}`, {{method: 'POST', headers: {{'X-CSRF-Token': csrfToken}}}}).then(() => location.reload());
                 }}
             }}
         </script>
     """
     
-    return wrap_page("Dashboard", content, nav_links=[("/dashboard", "Dashboard", "bg-gray-800"), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
+    return wrap_page("Dashboard", content, nav_links=[("/dashboard", "Dashboard", "bg-gray-800"), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")], csrf_token=get_csrf_token())
 
 @dashboard.route("/settings", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def settings():
     if "discord_token" not in session:
         return redirect(f"/login?redirect_to={quote(request.full_path)}")
@@ -488,7 +513,6 @@ def settings():
     is_premium = user_data.get("premium", False)
     
     if request.method == "POST":
-        # Handle Vanity URL
         vanity_url = request.form.get("vanity_url", "").strip()
         if vanity_url:
             if not is_premium:
@@ -504,10 +528,8 @@ def settings():
             
             db.reference(f"Dashboard Users/{user_id}").update({"vanity_url": vanity_url})
         elif is_premium:
-            # Allow clearing vanity URL if premium
             db.reference(f"Dashboard Users/{user_id}").update({"vanity_url": ""})
 
-        # Handle Social Links
         socials = request.form.getlist("socials[]")
         socials = [s.strip() for s in socials if s.strip()]
         
@@ -525,11 +547,9 @@ def settings():
     social_inputs = ""
     limit = SOCIAL_LIMIT_PREMIUM if is_premium else SOCIAL_LIMIT_FREE
     
-    # Render existing
     for link in current_socials:
         social_inputs += f'<input type="url" name="socials[]" value="{html.escape(link)}" class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 mb-2 focus:outline-none focus:border-indigo-500" placeholder="https://twitter.com/username">'
     
-    # Render remaining slots
     remaining = limit - len(current_socials)
     if remaining > 0:
         for _ in range(remaining):
@@ -554,6 +574,7 @@ def settings():
         {success_html}
         
         <form method="POST" class="space-y-8">
+            <input type="hidden" name="csrf_token" value="{get_csrf_token()}">
             <div class="glass p-6 rounded-xl">
                 <h2 class="text-xl font-semibold text-white mb-4">Profile Settings</h2>
                 
@@ -581,6 +602,7 @@ def settings():
     return wrap_page("Settings", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", "text-white bg-gray-800"), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
 @dashboard.route("/pin/<exp_id>", methods=["POST"])
+@limiter.limit("1 per second")
 def pin_experience(exp_id):
     if "discord_token" not in session:
         return jsonify({"error": "Not authenticated"}), 401
@@ -592,7 +614,6 @@ def pin_experience(exp_id):
     if not user_data.get("premium", False):
         return jsonify({"error": "Premium required"}), 403
         
-    # Verify ownership
     ref = db.reference(f"Experiences/{exp_id}")
     exp = ref.get()
     if not exp or str(exp.get("user_id")) != user_id:
@@ -602,6 +623,7 @@ def pin_experience(exp_id):
     return jsonify({"success": True})
 
 @dashboard.route("/unpin/<exp_id>", methods=["POST"])
+@limiter.limit("1 per second")
 def unpin_experience(exp_id):
     if "discord_token" not in session:
         return jsonify({"error": "Not authenticated"}), 401
@@ -609,7 +631,6 @@ def unpin_experience(exp_id):
     user = requests_session.get(f"{API_BASE}/users/@me", headers={"Authorization": f"Bearer {session['discord_token']}"}).json()
     user_id = str(user["id"])
     
-    # Verify ownership
     ref = db.reference(f"Experiences/{exp_id}")
     exp = ref.get()
     if not exp or str(exp.get("user_id")) != user_id:
@@ -619,17 +640,10 @@ def unpin_experience(exp_id):
     return jsonify({"success": True})
 
 @dashboard.route("/api/guilds")
+@limiter.limit("1 per 5 seconds")
 def api_dashboard_guilds():
     if "discord_token" not in session:
         return jsonify({"error": "Not authenticated"}), 401
-
-    user_id = session.get("user_id")
-    if user_id:
-        current_time = time()
-        if user_id in last_requests:
-            if current_time - last_requests[user_id] < 5:
-                return jsonify({"error": "Rate limit exceeded. Please wait 5 seconds and reload the page."}), 429
-        last_requests[user_id] = current_time
 
     try:
         discord_token = session['discord_token']
@@ -668,16 +682,29 @@ def api_dashboard_guilds():
         return jsonify({"error": f"Failed to load guilds: {str(e)}"}), 500
 
 @dashboard.route("/api/experiences")
+@limiter.limit("10 per minute")
 def api_experiences():
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
     user_id = session["user_id"]
     experiences = get_user_experiences(user_id)
+    
+    for exp in experiences:
+        exp['role_title'] = html.escape(str(exp.get('role_title', '')))
+        exp['server_name'] = html.escape(str(exp.get('server_name', '')))
+        exp['description'] = html.escape(str(exp.get('description', '')))
+        exp['approved_by_name'] = html.escape(str(exp.get('approved_by_name', '')))
+        if exp.get('approved_by_slug'):
+            exp['approved_by_slug'] = html.escape(str(exp['approved_by_slug']))
+        if exp.get('approved_by'):
+            exp['approved_by'] = html.escape(str(exp['approved_by']))
+
     # Sort: Pinned first, then by date (newest first)
     experiences.sort(key=lambda x: (x.get('is_pinned', False), int(x["start_year"]), int(x["start_month"])), reverse=True)
     return jsonify({"experiences": experiences})
 
 @dashboard.route("/api/pending_experiences")
+@limiter.limit("10 per minute")
 def api_pending_experiences():
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
@@ -690,10 +717,16 @@ def api_pending_experiences():
             if exp.get("status") == "pending":
                 exp_copy = exp.copy()
                 exp_copy["id"] = k
+                
+                exp_copy['role_title'] = html.escape(str(exp_copy.get('role_title', '')))
+                exp_copy['server_name'] = html.escape(str(exp_copy.get('server_name', '')))
+                exp_copy['description'] = html.escape(str(exp_copy.get('description', '')))
+                
                 pending.append(exp_copy)
     return jsonify({"pending": pending})
 
 @dashboard.route("/request/<server_id>", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def request_endorsement(server_id):
     if "user_id" not in session:
         return redirect(f"/login?redirect_to={quote(request.full_path)}")
@@ -759,6 +792,7 @@ def request_endorsement(server_id):
         <div class="glass p-8 rounded-2xl">
             <h2 class="text-2xl font-semibold mb-6 text-white">Request Experience for {html.escape(server_name)}</h2>
             <form method="post" class="space-y-4" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.innerHTML = 'Submitting...';">
+                <input type="hidden" name="csrf_token" value="{get_csrf_token()}">
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-1">Role Title</label>
                     <input name="role_title" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors">
@@ -802,6 +836,7 @@ def request_endorsement(server_id):
     return wrap_page(f"Request Experience - {server_name}", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
 @dashboard.route("/view/<server_id>")
+@limiter.limit("10 per minute")
 def view(server_id):
     if "user_id" not in session:
         return redirect(f"/login?redirect_to={quote(request.full_path)}")
@@ -834,6 +869,7 @@ def view(server_id):
     <script>
     const serverId = '{server_id}';
     const clientId = '{CLIENT_ID}';
+    const csrfToken = "{get_csrf_token()}";
     
     function disableBtn(btn) {{
         if (!btn) return;
@@ -1036,7 +1072,7 @@ def view(server_id):
 
     function approve(id, btn) {{
         disableBtn(btn);
-        fetch(`/approve/${{id}}`, {{method: 'POST'}})
+        fetch(`/approve/${{id}}`, {{method: 'POST', headers: {{'X-CSRF-Token': csrfToken}}}})
             .then(res => res.json())
             .then(data => {{
                 if (data.success) {{
@@ -1050,7 +1086,7 @@ def view(server_id):
     }}
     function reject(id, btn) {{
         disableBtn(btn);
-        fetch(`/reject/${{id}}`, {{method: 'POST'}})
+        fetch(`/reject/${{id}}`, {{method: 'POST', headers: {{'X-CSRF-Token': csrfToken}}}})
             .then(res => res.json())
             .then(data => {{
                 if (data.success) {{
@@ -1071,7 +1107,7 @@ def view(server_id):
     function delete_experience(id, btn) {{
         if (confirm('Are you sure you want to delete this experience?')) {{
             disableBtn(btn);
-            fetch(`/delete/${{id}}`, {{method: 'POST'}}).then(() => location.reload());
+            fetch(`/delete/${{id}}`, {{method: 'POST', headers: {{'X-CSRF-Token': csrfToken}}}}).then(() => location.reload());
         }}
     }}
 
@@ -1084,6 +1120,7 @@ def view(server_id):
         
         fetch(`/api/server_settings/${{serverId}}`, {{
             method: 'POST',
+            headers: {{'X-CSRF-Token': csrfToken}},
             body: formData
         }})
         .then(response => response.json())
@@ -1114,6 +1151,7 @@ def view(server_id):
     return wrap_page(f"Manage Server", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
 @dashboard.route("/api/guild/<server_id>")
+@limiter.limit("10 per minute")
 def api_server_view(server_id):
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
@@ -1147,7 +1185,7 @@ def api_server_view(server_id):
                 "id": exp['id'],
                 "role_title": html.escape(exp['role_title']),
                 "user_name": html.escape(exp['user_name']),
-                "user_id": exp['user_id'],
+                "user_id": html.escape(str(exp['user_id'])),
                 "start_month": exp['start_month'],
                 "start_year": exp['start_year'],
                 "end_month": exp.get('end_month', 'N/A'),
@@ -1177,13 +1215,13 @@ def api_server_view(server_id):
                 "id": exp['id'],
                 "role_title": html.escape(exp['role_title']),
                 "user_name": html.escape(exp['user_name']),
-                "user_id": exp['user_id'],
+                "user_id": html.escape(str(exp['user_id'])),
                 "start_month": exp['start_month'],
                 "start_year": exp['start_year'],
                 "end_display": end,
                 "description": html.escape(exp.get('description', '')),
                 "approver_name": html.escape(exp.get('approver_name', 'Unknown')),
-                "approver_id": exp.get('approved_by'),
+                "approver_id": html.escape(str(exp.get('approved_by', ''))),
                 "can_edit": can_edit,
                 "can_delete": can_delete
             })
@@ -1219,7 +1257,6 @@ def api_server_view(server_id):
                 
                 if channel_id:
                     notification_channel_id = channel_id
-                    # Try to get channel name
                     channel_res = requests_session.get(
                         f"{API_BASE}/channels/{channel_id}",
                         headers={"Authorization": f"Bot {BOT_TOKEN}"}
@@ -1247,6 +1284,7 @@ def api_server_view(server_id):
         return jsonify({"error": str(e)}), 500
 
 @dashboard.route("/api/server_settings/<server_id>", methods=["POST"])
+@limiter.limit("5 per minute")
 def save_server_settings(server_id):
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
@@ -1282,6 +1320,7 @@ def save_server_settings(server_id):
     return jsonify({"success": True})
 
 @dashboard.route("/approve/<exp_id>", methods=["POST"])
+@limiter.limit("1 per second")
 def approve(exp_id):
     if "user_id" not in session:
         return "Not logged in", 401
@@ -1307,6 +1346,7 @@ def approve(exp_id):
     return jsonify({"success": True})
 
 @dashboard.route("/reject/<exp_id>", methods=["POST"])
+@limiter.limit("1 per second")
 def reject(exp_id):
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
@@ -1324,6 +1364,7 @@ def reject(exp_id):
     return jsonify({"success": True})
 
 @dashboard.route("/edit_pending/<exp_id>", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def edit_pending(exp_id):
     if "user_id" not in session:
         return redirect(f"/login?redirect_to={quote(request.full_path)}")
@@ -1345,7 +1386,6 @@ def edit_pending(exp_id):
     limit = DESC_LIMIT_PREMIUM if is_premium else DESC_LIMIT_FREE
 
     if request.method == "POST":
-        # Validation
         start_month = request.form.get("start_month")
         start_year = request.form.get("start_year")
         end_month = request.form.get("end_month")
@@ -1384,6 +1424,7 @@ def edit_pending(exp_id):
         <div class="glass p-8 rounded-2xl">
             <h2 class="text-2xl font-semibold mb-6 text-white">Edit Experience</h2>
             <form method="post" class="space-y-4" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.innerHTML = 'Updating...';">
+                <input type="hidden" name="csrf_token" value="{get_csrf_token()}">
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-1">Role Title</label>
                     <input name="role_title" value="{html.escape(exp.get('role_title', ''))}" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors">
@@ -1427,6 +1468,7 @@ def edit_pending(exp_id):
     return wrap_page("Edit Experience", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
 @dashboard.route("/edit_accepted/<exp_id>", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def edit_accepted(exp_id):
     if "user_id" not in session:
         return redirect(f"/login?redirect_to={quote(request.full_path)}")
@@ -1485,6 +1527,7 @@ def edit_accepted(exp_id):
         <div class="glass p-8 rounded-2xl">
             <h2 class="text-2xl font-semibold mb-6 text-white">Edit Accepted Experience</h2>
             <form method="post" class="space-y-4" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.innerHTML = 'Updating...';">
+                <input type="hidden" name="csrf_token" value="{get_csrf_token()}">
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-1">Role Title</label>
                     <input name="role_title" value="{html.escape(exp.get('role_title', ''))}" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors">
@@ -1528,6 +1571,7 @@ def edit_accepted(exp_id):
     return wrap_page("Edit Accepted Experience", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
 @dashboard.route("/end/<exp_id>", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def end(exp_id):
     exp = db.reference(f"Experiences/{exp_id}").get()
     if not exp or exp["user_id"] != session.get("user_id"):
@@ -1553,6 +1597,7 @@ def end(exp_id):
         <div class="glass p-8 rounded-2xl">
             <h2 class="text-2xl font-semibold mb-6 text-white">Edit End Date</h2>
             <form method="post" class="space-y-4" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.innerHTML = 'Updating...';">
+                <input type="hidden" name="csrf_token" value="{get_csrf_token()}">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">End Month</label>
@@ -1575,6 +1620,7 @@ def end(exp_id):
     return wrap_page("Edit End Date", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
 @dashboard.route("/delete/<exp_id>", methods=["POST"])
+@limiter.limit("1 per second")
 def delete(exp_id):
     if "user_id" not in session:
         return "Not logged in", 401
@@ -1596,6 +1642,7 @@ def delete(exp_id):
     return "Deleted"
 
 @dashboard.route("/delete_pending/<exp_id>", methods=["POST"])
+@limiter.limit("1 per second")
 def delete_pending(exp_id):
     if "user_id" not in session:
         return "Not logged in", 401
@@ -1618,8 +1665,8 @@ def delete_pending(exp_id):
     return "Deleted"
 
 @dashboard.route("/u/<user_id>")
+@limiter.limit("20 per minute")
 def public_timeline(user_id):
-    # Check for vanity URL first
     if not user_id.isdigit():
         ref = db.reference("Dashboard Users")
         users = ref.order_by_child("vanity_url").equal_to(user_id).get()
@@ -1643,7 +1690,6 @@ def public_timeline(user_id):
     is_premium = user_data.get("premium", False)
     socials = user_data.get("socials", [])
     
-    # Social Icons Mapping
     def get_social_icon(url):
         url = url.lower()
         if "twitter.com" in url or "x.com" in url:
@@ -1737,8 +1783,8 @@ def public_timeline(user_id):
     return wrap_page(f"{username}'s Timeline", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
 @dashboard.route("/s/<server_id>")
+@limiter.limit("20 per minute")
 def public_server_profile(server_id):
-    # Check for vanity URL
     if not server_id.isdigit():
         servers_ref = db.reference("Dashboard Servers")
         result = servers_ref.order_by_child("vanity_url").equal_to(server_id).get()
@@ -1747,7 +1793,6 @@ def public_server_profile(server_id):
         else:
             return error_page("Server not found", 404)
 
-    # Fetch guild info using Bot Token
     r = requests_session.get(f"{API_BASE}/guilds/{server_id}", params={"with_counts": "true"}, headers={"Authorization": f"Bot {BOT_TOKEN}"})
     
     server_name = "Unknown Server"
@@ -1871,7 +1916,47 @@ def public_server_profile(server_id):
     
     return wrap_page(f"{server_name} - Server Profile", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", ""), ("/logout", "Logout", "")])
 
+def verify_payment(order_id):
+    auth = (PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET)
+    
+    token_url = f"{PAYPAL_API_BASE}/v1/oauth2/token"
+    headers = {"Accept": "application/json", "Accept-Language": "en_US"}
+    data = {"grant_type": "client_credentials"}
+    
+    try:
+        r = requests_session.post(token_url, auth=auth, headers=headers, data=data)
+        r.raise_for_status()
+        access_token = r.json()["access_token"]
+    except Exception as e:
+        print(f"PayPal Token Error: {e}")
+        return False
+
+    order_url = f"{PAYPAL_API_BASE}/v2/checkout/orders/{order_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    
+    try:
+        r = requests_session.get(order_url, headers=headers)
+        r.raise_for_status()
+        order_data = r.json()
+        
+        if order_data["status"] != "COMPLETED":
+            return False
+            
+        purchase_units = order_data.get("purchase_units", [])
+        if not purchase_units:
+            return False
+            
+        amount = purchase_units[0]["amount"]["value"]
+        if float(amount) < float(PREMIUM_ONE_TIME_PRICE):
+            return False
+            
+        return True
+    except Exception as e:
+        print(f"PayPal Order Verification Error: {e}")
+        return False
+
 @dashboard.route("/payment/activate", methods=["POST"])
+@limiter.limit("5 per minute")
 def activate_premium():
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
@@ -1882,6 +1967,9 @@ def activate_premium():
     
     if session["user_id"] != user_id:
         return jsonify({"error": "Unauthorized"}), 403
+        
+    if not verify_payment(order_id):
+        return jsonify({"error": "Invalid payment verification"}), 400
         
     try:
         # Update user premium status
@@ -1898,6 +1986,7 @@ def activate_premium():
         return jsonify({"error": str(e)}), 500
 
 @dashboard.route("/premium")
+@limiter.limit("20 per minute")
 def premium_page():
     if "user_id" not in session:
         return redirect(f"/login?redirect_to={quote(request.full_path)}")
@@ -1993,6 +2082,7 @@ def premium_page():
     <script src="https://www.paypal.com/sdk/js?client-id={PAYPAL_CLIENT_ID}&intent=capture&enable-funding=venmo&currency=USD"></script>
     <script>
         const isPremium = {str(is_premium).lower()};
+        const csrfToken = "{get_csrf_token()}";
         
         if (isPremium) {{
             document.getElementById('paypal-button-container').innerHTML = '<div class="w-full bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-center">Plan Active</div>';
@@ -2013,7 +2103,7 @@ def premium_page():
                         document.getElementById('paypal-button-container').innerHTML = '<div class="text-center text-white">Processing payment...</div>';
                         return fetch('/payment/activate', {{
                             method: 'POST',
-                            headers: {{ 'Content-Type': 'application/json' }},
+                            headers: {{ 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }},
                             body: JSON.stringify({{ user_id: "{user_id}", order_id: data.orderID, payment_details: details }})
                         }}).then(response => {{
                             if (response.ok) window.location.href = '/dashboard';
@@ -2034,6 +2124,7 @@ def premium_page():
     return wrap_page("Premium", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", "text-white bg-gray-800"), ("/logout", "Logout", "")])
 
 @dashboard.route("/experience/<exp_id>")
+@limiter.limit("20 per minute")
 def view_experience_history(exp_id):
     exp = db.reference(f"Experiences/{exp_id}").get()
     if not exp:
@@ -2041,13 +2132,11 @@ def view_experience_history(exp_id):
     
     history = get_experience_history(exp_id)
     
-    # Format history
     history_html = ""
     for h in history:
         user_info = get_user_info_short(h.get("user_id"))
         user_link = f'<a href="/u/{user_info["slug"]}" class="text-indigo-400 hover:underline">{html.escape(user_info["name"])}</a>'
         
-        # Use client-side rendering for local time
         ts_html = f'<span class="local-time" data-timestamp="{h["timestamp"]}">Loading...</span>'
         
         details_html = ""
