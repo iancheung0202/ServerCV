@@ -12,7 +12,10 @@ def save_user_to_firebase(user, token):
     db.reference(f"Dashboard Users/{user['id']}").update({
         "username": user["username"],
         "avatar": user.get("avatar", ""),
-        "discord_token": token
+        "discord_token": token,
+        "global_name": user.get("global_name"),
+        "banner": user.get("banner"),
+        "banner_color": user.get("banner_color")
     })
 
 def log_history(exp_id, action, user_id, details=None):
@@ -36,7 +39,7 @@ def get_experience_history(exp_id):
     history_list.sort(key=lambda x: x['timestamp'], reverse=True)
     return history_list
 
-def save_experience_request(user_id, server_id, server_name, role_title, start_month, start_year, end_month, end_year, description, requester_role, server_icon=None):
+def save_experience_request(user_id, server_id, server_name, role_title, start_month, start_year, end_month, end_year, description, requester_role, server_icon=None, server_banner=None):
     exp_id = str(uuid.uuid4())
     data = {
         "user_id": user_id,
@@ -54,6 +57,8 @@ def save_experience_request(user_id, server_id, server_name, role_title, start_m
     }
     if server_icon:
         data["server_icon"] = server_icon
+    if server_banner:
+        data["server_banner"] = server_banner
         
     db.reference(f"Experiences/{exp_id}").set(data)
     log_history(exp_id, "Initial Request Submission", user_id, data)

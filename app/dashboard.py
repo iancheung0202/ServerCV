@@ -82,6 +82,7 @@ def get_user_role_and_guild(user_id, server_id, discord_token):
         if str(g['id']) == server_id:
             perms = get_permissions_list(int(g.get("permissions", 0)))
             if g.get("owner"):
+                print(g)
                 return "Server Owner", g
             elif "Administrator" in perms:
                 return "Administrator", g
@@ -146,6 +147,7 @@ def view_dashboard():
         session["discord_token"] = tokens["access_token"]
 
         user = requests_session.get(f"{API_BASE}/users/@me", headers={"Authorization": f"Bearer {tokens['access_token']}"}).json()
+        print(user)
         save_user_to_firebase(user, tokens["access_token"])
         session["user_id"] = str(user["id"])
 
@@ -162,14 +164,14 @@ def view_dashboard():
         return """<!DOCTYPE html>
             <html lang="en">
             <head>
-                <title>ServerCV | Show Your Verified Discord Experience</title>
+                <title>ServerCV | Showcase Your Discord Experience</title>
                 <meta name="description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
                 <meta name="author" content="ServerCV">
                 <meta name="keywords" content="Discord Resume, Discord Portfolio, Discord Staff, Server Contributions, Discord Experience, Verified History, Discord Community, Staff Application, ServerCV">
                 <meta name="creator" content="ServerCV">
                 <meta name="publisher" content="ServerCV">
                 <meta name="robots" content="index, follow">
-                <meta property="og:title" content="ServerCV | Show Your Verified Discord Experience">
+                <meta property="og:title" content="ServerCV | Showcase Your Discord Experience">
                 <meta property="og:description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
                 <meta property="og:type" content="website">
                 <meta property="og:site_name" content="ServerCV">
@@ -177,7 +179,7 @@ def view_dashboard():
                 <meta property="og:url" content="https://servercv.com/dashboard">
                 <meta name="theme-color" content="#5A4BEB">
                 <meta name="twitter:card" content="summary">
-                <meta name="twitter:title" content="ServerCV | Show Your Verified Discord Experience">
+                <meta name="twitter:title" content="ServerCV | Showcase Your Discord Experience">
                 <meta name="twitter:description" content="Build a verified portfolio of your server contributions. Perfect for staff applications and sharing your achievements in the Discord community.">
                 <meta name="twitter:image" content="https://servercv.com/assets/icon.png">
                 <link rel="icon" href="https://servercv.com/assets/favicon.ico" sizes="48x48" type="image/x-icon">
@@ -700,7 +702,7 @@ def api_experiences():
             exp['approved_by'] = html.escape(str(exp['approved_by']))
 
     # Sort: Pinned first, then by date (newest first)
-    experiences.sort(key=lambda x: (x.get('is_pinned', False), int(x["start_year"]), int(x["start_month"])), reverse=True)
+    experiences.sort(key=lambda x: (x.get('is_pinned', False), int(x["start_year"]), int(x["start_month"]), int(x.get("end_year") or 9999), int(x.get("end_month") or 12)), reverse=True)
     return jsonify({"experiences": experiences})
 
 @dashboard.route("/api/pending_experiences")
@@ -723,6 +725,8 @@ def api_pending_experiences():
                 exp_copy['description'] = html.escape(str(exp_copy.get('description', '')))
                 
                 pending.append(exp_copy)
+    
+    pending.sort(key=lambda x: (int(x["start_year"]), int(x["start_month"]), int(x.get("end_year") or 9999), int(x.get("end_month") or 12)), reverse=True)
     return jsonify({"pending": pending})
 
 @dashboard.route("/request/<server_id>", methods=["GET", "POST"])
@@ -784,8 +788,9 @@ def request_endorsement(server_id):
         
         # Get server icon
         server_icon = guild_data.get("icon") if guild_data else None
+        server_banner = guild_data.get("banner") if guild_data else None
                 
-        save_experience_request(user_id, server_id, server_name, role_title, start_month, request.form.get("start_year"), end_month, end_year, description, role, server_icon)
+        save_experience_request(user_id, server_id, server_name, role_title, start_month, request.form.get("start_year"), end_month, end_year, description, role, server_icon, server_banner)
         return redirect("/dashboard")
     content = f"""
     <div class="max-w-2xl mx-auto">
@@ -977,12 +982,12 @@ def view(server_id):
             data.pending.forEach(exp => {{
                 html += `
                 <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 border-l-4 border-l-yellow-500">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
+                    <div class="flex justify-between items-start mb-4 gap-4">
+                        <div class="flex-grow min-w-0">
                             <div class="font-semibold text-lg text-white">${{exp.role_title}}</div>
                             <div class="text-indigo-400 text-sm">User: <a href="/u/${{exp.user_id}}" target="_blank" class="hover:underline hover:text-indigo-300">${{exp.user_name}}</a> <span class="text-gray-500">(${{exp.user_id}})</span></div>
                         </div>
-                        <div class="text-sm font-mono text-gray-400 bg-gray-900/50 px-3 py-1 rounded-full">
+                        <div class="text-sm font-mono text-gray-400 bg-gray-900/50 px-3 py-1 rounded-full whitespace-nowrap flex-shrink-0">
                             ${{exp.start_month}}/${{exp.start_year}} - ${{exp.end_month}}/${{exp.end_year}}
                         </div>
                     </div>
@@ -992,9 +997,15 @@ def view(server_id):
                     </div>
                     
                     <div class="flex justify-end items-center gap-3">
-                        <button onclick="approve('${{exp.id}}', this)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Approve</button>
-                        <button onclick="reject('${{exp.id}}', this)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Reject</button>
-                        <button onclick="edit_pending('${{exp.id}}')" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Edit</button>
+                        ${{exp.can_approve ? 
+                            `<button onclick="approve('${{exp.id}}', this)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Approve</button>
+                             <button onclick="reject('${{exp.id}}', this)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Reject</button>
+                             <button onclick="edit_pending('${{exp.id}}')" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Edit</button>` 
+                            : 
+                            `<button disabled class="bg-green-600/50 text-white/50 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">Approve</button>
+                             <button disabled class="bg-red-600/50 text-white/50 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">Reject</button>
+                             <button disabled class="bg-gray-700/50 text-white/50 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">Edit</button>`
+                        }}
                     </div>
                 </div>
                 `;
@@ -1017,12 +1028,12 @@ def view(server_id):
             data.approved.forEach(exp => {{
                 html += `
                 <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 opacity-75 hover:opacity-100 transition-opacity">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
+                    <div class="flex justify-between items-start mb-4 gap-4">
+                        <div class="flex-grow min-w-0">
                             <div class="font-semibold text-lg text-white">${{exp.role_title}}</div>
                             <div class="text-indigo-400 text-sm">User: <a href="/u/${{exp.user_id}}" target="_blank" class="hover:underline hover:text-indigo-300">${{exp.user_name}}</a> <span class="text-gray-500">(${{exp.user_id}})</span></div>
                         </div>
-                        <div class="text-sm font-mono text-gray-400 bg-gray-900/50 px-3 py-1 rounded-full">
+                        <div class="text-sm font-mono text-gray-400 bg-gray-900/50 px-3 py-1 rounded-full whitespace-nowrap flex-shrink-0">
                             ${{exp.start_month}}/${{exp.start_year}} - ${{exp.end_display}}
                         </div>
                     </div>
@@ -1167,6 +1178,9 @@ def api_server_view(server_id):
         pending_list = [exp for exp in all_exp if exp.get("status") == "pending"]
         approved_list = [exp for exp in all_exp if exp.get("status") == "approved"]
         
+        pending_list.sort(key=lambda x: (int(x["start_year"]), int(x["start_month"]), int(x.get("end_year") or 9999), int(x.get("end_month") or 12)), reverse=True)
+        approved_list.sort(key=lambda x: (int(x["start_year"]), int(x["start_month"]), int(x.get("end_year") or 9999), int(x.get("end_month") or 12)), reverse=True)
+
         # Get server name
         server_name = guild_data.get("name", "Unknown Server") if guild_data else "Unknown Server"
         
@@ -1177,7 +1191,7 @@ def api_server_view(server_id):
                 can_approve = True
             elif role == "Administrator":
                 requester_role = exp.get("requester_role")
-                can_approve = requester_role not in ["Server Owner", "Administrator"] and exp['user_id'] != user_id
+                can_approve = requester_role not in ["Server Owner", "Administrator"] and str(exp['user_id']) != user_id
             else:
                 can_approve = False
             
@@ -1206,7 +1220,7 @@ def api_server_view(server_id):
                 can_edit = True
                 can_delete = True
             elif role == "Administrator":
-                if exp_user_role not in ["Server Owner", "Administrator"] and exp['user_id'] != user_id:
+                if exp_user_role not in ["Server Owner", "Administrator"] and str(exp['user_id']) != user_id:
                     can_edit = True
             
             end = f"{exp.get('end_month')}/{exp.get('end_year')}" if exp.get('end_month') else 'Present'
@@ -1337,11 +1351,11 @@ def approve(exp_id):
         can_approve = True
     elif role == "Administrator":
         requester_role = exp.get("requester_role")
-        can_approve = requester_role not in ["Server Owner", "Administrator"] and exp['user_id'] != user_id
+        can_approve = requester_role not in ["Server Owner", "Administrator"] and str(exp['user_id']) != user_id
     else:
         can_approve = False
     if not can_approve:
-        return jsonify({"error": "Cannot approve this request"}), 403
+        return jsonify({"error": "You cannot approve this request. You cannot approve your own, other admins', or the owner's request. Only the server owner can approve such request."}), 403
     approve_experience(exp_id, user_id)
     return jsonify({"success": True})
 
@@ -1359,6 +1373,10 @@ def reject(exp_id):
     role = get_user_role_in_server(user_id, server_id, discord_token)
     if role not in ["Server Owner", "Administrator"]:
         return jsonify({"error": "Not authorized"}), 403
+    if role == "Administrator":
+        requester_role = exp.get("requester_role")
+        if requester_role in ["Server Owner", "Administrator"] or str(exp['user_id']) == user_id:
+             return jsonify({"error": "You cannot reject this request. You cannot approve/reject/edit your own, other admins', or the owner's request. Only the server owner can approve/reject/edit such request."}), 403
     log_history(exp_id, "Rejected", user_id)
     reject_experience(exp_id)
     return jsonify({"success": True})
@@ -1379,6 +1397,11 @@ def edit_pending(exp_id):
     # Allow if server owner/admin OR if it's the user's own request
     if role not in ["Server Owner", "Administrator"] and str(exp.get("user_id")) != user_id:
         return error_page("Not authorized", 403)
+    
+    if role == "Administrator":
+        requester_role = exp.get("requester_role")
+        if requester_role in ["Server Owner", "Administrator"] or str(exp['user_id']) == user_id:
+             return error_page("You cannot edit this request. You cannot approve/reject/edit your own, other admins', or the owner's request. Only the server owner can approve/reject/edit such request.", 403)
     
     exp_user_id = str(exp["user_id"])
     user_data = get_user_data(exp_user_id)
@@ -1483,8 +1506,8 @@ def edit_accepted(exp_id):
         return error_page("Not authorized", 403)
     if role == "Administrator":
         exp_user_role = get_user_role_in_server(exp['user_id'], server_id, discord_token)
-        if exp_user_role in ["Server Owner", "Administrator"] or exp['user_id'] == user_id:
-            return error_page("Cannot edit this experience", 403)
+        if exp_user_role in ["Server Owner", "Administrator"] or str(exp['user_id']) == user_id:
+            return error_page("You cannot edit this request. You cannot approve/reject/edit your own, other admins', or the owner's request. Only the server owner can approve/reject/edit such request.", 403)
             
     exp_user_id = str(exp["user_id"])
     user_data = get_user_data(exp_user_id)
@@ -1678,15 +1701,34 @@ def public_timeline(user_id):
     experiences = get_user_experiences(user_id)
     # Sort: Pinned first, then by date (newest first)
     # Pinned (True) > Unpinned (False), so reverse=True puts Pinned first.
-    experiences.sort(key=lambda x: (x.get('is_pinned', False), int(x["start_year"]), int(x["start_month"])), reverse=True)
+    experiences.sort(key=lambda x: (x.get('is_pinned', False), int(x["start_year"]), int(x["start_month"]), int(x.get("end_year") or 9999), int(x.get("end_month") or 12)), reverse=True)
     
     user_data = get_user_data(user_id)
     if not user_data:
         return error_page("User not found", 404)
     username = user_data.get("username", "Unknown User")
+    global_name = user_data.get("global_name")
+    display_name = global_name if global_name else username
+    
     avatar = user_data.get("avatar")
     avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png?size=128" if avatar else "https://cdn.discordapp.com/embed/avatars/0.png"
     
+    banner = user_data.get("banner")
+    banner_color = user_data.get("banner_color")
+    
+    banner_style = ""
+    banner_height_class = "h-32 sm:h-48"
+    
+    if banner:
+        ext = "gif" if banner.startswith("a_") else "png"
+        banner_url = f"https://cdn.discordapp.com/banners/{user_id}/{banner}.{ext}?size=1024"
+        banner_style = f'background-image: url({banner_url}); background-size: cover; background-position: center;'
+        banner_height_class = "h-48 sm:h-80"
+    elif banner_color:
+        banner_style = f'background-color: {banner_color};'
+    else:
+        banner_style = 'background-color: #1f2937;'
+
     is_premium = user_data.get("premium", False)
     socials = user_data.get("socials", [])
     
@@ -1700,6 +1742,14 @@ def public_timeline(user_id):
             return '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clip-rule="evenodd"/></svg>'
         elif "youtube.com" in url:
             return '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" clip-rule="evenodd"/></svg>'
+        elif "instagram.com" in url:
+            return '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.451 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd" /></svg>'
+        elif "facebook.com" in url:
+            return '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>'
+        elif "t.me" in url or "telegram.org" in url:
+            return '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z" clip-rule="evenodd" /></svg>'
+        elif "discord.com" in url or "discord.gg" in url:
+            return '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-2.313-9.133-4.816-13.674a.061.061 0 0 0-.03-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>'
         else:
             return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>'
 
@@ -1710,22 +1760,46 @@ def public_timeline(user_id):
             socials_html += f'<a href="{html.escape(link)}" target="_blank" class="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-full transition-colors">{get_social_icon(link)}</a>'
         socials_html += '</div>'
 
+    premium_badge = ""
+    if is_premium:
+        premium_badge = '<a href="/premium" target="_blank"><div class="absolute top-4 right-4 bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-full shadow-lg z-10">PREMIUM MEMBER</div></a>'
+    
+    verified_badge = ""
+    if is_premium:
+        verified_badge = '<a href="/premium" target="_blank"><span title="Verified Premium Member"><svg class="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></span></a>'
+
+    username_display = ""
+    if global_name:
+        username_display = f'<div class="text-gray-400 text-lg mb-4 font-medium">{html.escape(username)}</div>'
+    else:
+        username_display = f'<br>'
+
     content = f"""
     <div class="max-w-4xl mx-auto">
-        <div class="glass p-8 rounded-2xl mb-8 text-center relative overflow-hidden">
-            {f'<div class="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-bl-lg">PREMIUM MEMBER</div>' if is_premium else ''}
-            <img src="{avatar_url}" alt="{html.escape(username)}" class="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-indigo-500/30 shadow-xl">
-            <h1 class="text-3xl font-semibold mb-2 flex items-center justify-center gap-2">
-                {html.escape(username)}
-                {f'<span title="Verified Premium Member"><svg class="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></span>' if is_premium else ''}
-            </h1>
-            
-            {socials_html}
-
-            <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-400 mb-6">
-                User ID: {html.escape(user_id)}
+        <div class="glass rounded-2xl mb-8 overflow-hidden">
+            <div class="{banner_height_class} w-full relative" style="{banner_style}">
+                {premium_badge}
             </div>
-            <p class="text-gray-400 font-medium border-t border-gray-700 pt-6">User Experience Timeline</p>
+            
+            <div class="px-8 pb-8 text-center relative">
+                <div class="-mt-16 mb-4 relative inline-block">
+                    <img src="{avatar_url}" alt="{html.escape(display_name)}" class="w-32 h-32 rounded-full border-4 border-[#1a1b26] shadow-xl bg-[#1a1b26]">
+                </div>
+                
+                <h1 class="text-3xl font-semibold mb-1 flex items-center justify-center gap-2 text-white">
+                    {html.escape(display_name)}
+                    {verified_badge}
+                </h1>
+                
+                {username_display}
+                
+                {socials_html}
+
+                <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-400 mb-6">
+                    User ID: {html.escape(user_id)}
+                </div>
+                <p class="text-gray-400 font-medium border-t border-gray-700 pt-6">User Experience Timeline</p>
+            </div>
         </div>
         
         <div class="space-y-6">
@@ -1749,8 +1823,8 @@ def public_timeline(user_id):
             <div class="glass p-6 rounded-xl {border_class} transition-colors relative overflow-hidden group">
                 {pin_badge}
                 <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500"></div>
-                <div class="flex flex-col md:flex-row justify-between items-start gap-4">
-                    <div class="flex-grow">
+                <div class="flex justify-between items-start gap-4">
+                    <div class="flex-grow min-w-0">
                         <h3 class="text-xl font-semibold text-white mb-1">{html.escape(exp['role_title'])}</h3>
                         <div class="text-indigo-400 font-medium mb-2">
                             <a href="/s/{exp['server_id']}" class="hover:underline" target="_blank">{html.escape(exp['server_name'])}</a>
@@ -1769,8 +1843,8 @@ def public_timeline(user_id):
                             </div>
                         </div>
                     </div>
-                    <div class="text-right min-w-[100px]">
-                        <div class="text-sm font-mono text-gray-400 bg-gray-800/50 px-3 py-1 rounded-full inline-block">
+                    <div class="text-right flex-shrink-0">
+                        <div class="text-sm font-mono text-gray-400 bg-gray-800/50 px-3 py-1 rounded-full inline-block whitespace-nowrap">
                             {exp['start_month']}/{exp['start_year']} - {end}
                         </div>
                     </div>
@@ -1800,6 +1874,7 @@ def public_server_profile(server_id):
     member_count = None
     created_at = "Unknown"
     description = None
+    banner = None
     
     all_exp = get_all_experiences_for_server(server_id)
     
@@ -1810,6 +1885,7 @@ def public_server_profile(server_id):
         icon_url = f"https://cdn.discordapp.com/icons/{server_id}/{icon}.png?size=128" if icon else "https://cdn.discordapp.com/embed/avatars/0.png"
         member_count = guild.get("approximate_member_count", 0)
         description = guild.get("description")
+        banner = guild.get("banner")
     else:
         if not all_exp:
             return error_page("Server not found or bot not in server", 404)
@@ -1821,6 +1897,7 @@ def public_server_profile(server_id):
         icon = latest.get("server_icon")
         if icon:
             icon_url = f"https://cdn.discordapp.com/icons/{server_id}/{icon}.png?size=128"
+        banner = latest.get("server_banner")
 
     # Calculate creation date from snowflake
     try:
@@ -1831,7 +1908,7 @@ def public_server_profile(server_id):
         pass
 
     approved_list = [exp for exp in all_exp if exp.get("status") == "approved"]
-    approved_list.sort(key=lambda x: (int(x["start_year"]), int(x["start_month"])), reverse=True)
+    approved_list.sort(key=lambda x: (int(x["start_year"]), int(x["start_month"]), int(x.get("end_year") or 9999), int(x.get("end_month") or 12)), reverse=True)
 
     member_count_html = ""
     if member_count is not None:
@@ -1842,9 +1919,15 @@ def public_server_profile(server_id):
                 </div>
         """
 
+    banner_style = ""
+    if banner:
+        ext = "gif" if banner.startswith("a_") else "png"
+        banner_url = f"https://cdn.discordapp.com/banners/{server_id}/{banner}.{ext}?size=1024"
+        banner_style = f'background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url({banner_url}); background-size: cover; background-position: center;'
+
     content = f"""
     <div class="max-w-4xl mx-auto">
-        <div class="glass p-8 rounded-2xl mb-8 text-center">
+        <div class="glass p-8 rounded-2xl mb-8 text-center" style="{banner_style}">
             <img src="{icon_url}" alt="{html.escape(server_name)}" class="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-indigo-500/30 shadow-xl">
             <h1 class="text-3xl font-semibold mb-2">{html.escape(server_name)}</h1>
             
@@ -1883,8 +1966,8 @@ def public_server_profile(server_id):
             content += f"""
             <div class="glass p-6 rounded-xl hover:bg-white/5 transition-colors relative overflow-hidden group">
                 <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500"></div>
-                <div class="flex flex-col md:flex-row justify-between items-start gap-4">
-                    <div class="flex-grow">
+                <div class="flex justify-between items-start gap-4">
+                    <div class="flex-grow min-w-0">
                         <h3 class="text-xl font-semibold text-white mb-1">{html.escape(exp['role_title'])}</h3>
                         <div class="text-indigo-400 font-medium mb-2">
                             <a href="/u/{exp.get('user_slug') or exp['user_id']}" class="hover:underline" target="_blank">{html.escape(exp['user_name'])}</a>
@@ -1903,8 +1986,8 @@ def public_server_profile(server_id):
                             </div>
                         </div>
                     </div>
-                    <div class="text-right min-w-[100px]">
-                        <div class="text-sm font-mono text-gray-400 bg-gray-800/50 px-3 py-1 rounded-full inline-block">
+                    <div class="text-right flex-shrink-0">
+                        <div class="text-sm font-mono text-gray-400 bg-gray-800/50 px-3 py-1 rounded-full inline-block whitespace-nowrap">
                             {exp['start_month']}/{exp['start_year']} - {end}
                         </div>
                     </div>
