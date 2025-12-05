@@ -2054,6 +2054,15 @@ def activate_premium():
     if not verify_payment(order_id):
         return jsonify({"error": "Invalid payment verification"}), 400
         
+    # Check if order_id is already used
+    users_ref = db.reference("Dashboard Users")
+    existing_users = users_ref.order_by_child("paypal_order_id").equal_to(order_id).get()
+    
+    if existing_users:
+        for uid in existing_users:
+            if uid != user_id:
+                return jsonify({"error": "This order ID has already been used."}), 400
+        
     try:
         # Update user premium status
         ref = db.reference(f"Dashboard Users/{user_id}")
