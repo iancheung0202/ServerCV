@@ -12,7 +12,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_limiter.errors import RateLimitExceeded
 
-from config.settings import API_BASE, BOT_TOKEN, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_API_BASE, PREMIUM_ONE_TIME_PRICE
+from config.settings import API_BASE, BOT_TOKEN, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_API_BASE, PREMIUM_ONE_TIME_PRICE, ALLOWED_PREMIUM_SERVERS
 from utils.firebase import save_user_to_firebase, save_experience_request, get_user_experiences, approve_experience, reject_experience, update_experience_end_date, get_all_experiences_for_server, get_user_data, log_history, get_experience_history, get_user_info_short
 from utils.request import requests_session
 from utils.theme import wrap_page, error_page
@@ -1223,7 +1223,7 @@ def api_server_view(server_id):
                 if exp_user_role not in ["Server Owner", "Administrator"] and str(exp['user_id']) != user_id:
                     can_edit = True
             
-            end = f"{exp.get('end_month')}/{exp.get('end_year')}" if exp.get('end_month') else 'Present'
+            end = f"{exp.get('end_month')}/{exp.get('end_year')}" if exp.get('end_month') else 'Present';
             
             approved_data.append({
                 "id": exp['id'],
@@ -1813,7 +1813,7 @@ def public_timeline(user_id):
         """
     else:
         for exp in experiences:
-            end = f"{exp.get('end_month', '')}/{exp.get('end_year', '')}" if exp.get('end_month') else '<span class="text-green-400">Present</span>'
+            end = f"{exp.get('end_month', '')}/{exp.get('end_year', '')}" if exp.get('end_month') else '<span class="text-green-400">Present</span>';
             is_pinned = exp.get('is_pinned', False)
             
             border_class = "border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.1)]" if is_pinned else "hover:bg-white/5"
@@ -2214,6 +2214,206 @@ def premium_page():
     """
     
     return wrap_page("Premium", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", "text-white bg-gray-800"), ("/logout", "Logout", "")])
+
+@dashboard.route("/premium/<server_id>")
+@limiter.limit("10 per minute")
+def server_premium_page(server_id):
+    if "user_id" not in session:
+        return redirect(f"/login?redirect_to={quote(request.full_path)}")
+    
+    if server_id not in ALLOWED_PREMIUM_SERVERS:
+        return error_page("This server is not eligible for the premium offer.", 404)
+
+    user_id = session["user_id"]
+    discord_token = session.get("discord_token")
+    
+    role = get_user_role_in_server(user_id, server_id, discord_token)
+    if not role or role not in ["Server Owner", "Administrator", "Moderator"]:
+        return error_page("You must be a staff member (Owner, Admin, Mod) of this server to access this page.", 403)
+
+    r = requests_session.get(f"{API_BASE}/guilds/{server_id}", params={"with_counts": "true"}, headers={"Authorization": f"Bot {BOT_TOKEN}"})
+    
+    server_name = "Unknown Server"
+    icon_url = "https://cdn.discordapp.com/embed/avatars/0.png"
+    
+    if r.status_code == 200:
+        guild = r.json()
+        server_name = guild.get("name", "Unknown Server")
+        icon = guild.get("icon")
+        icon_url = f"https://cdn.discordapp.com/icons/{server_id}/{icon}.png?size=128" if icon else "https://cdn.discordapp.com/embed/avatars/0.png"
+    else:
+        all_exp = get_all_experiences_for_server(server_id)
+        if all_exp:
+            sorted_exp = sorted(all_exp, key=lambda x: x.get("requested_at", 0), reverse=True)
+            latest = sorted_exp[0]
+            server_name = latest.get("server_name", "Unknown Server")
+            icon = latest.get("server_icon")
+            if icon:
+                icon_url = f"https://cdn.discordapp.com/icons/{server_id}/{icon}.png?size=128"
+
+    user_data = get_user_data(user_id)
+    is_premium = user_data.get('premium', False)
+    premium_price = PREMIUM_ONE_TIME_PRICE
+
+    content = f"""
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-12">
+            <img src="{icon_url}" alt="{html.escape(server_name)}" class="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-indigo-500/30 shadow-xl">
+            <h1 class="text-3xl font-bold text-white mb-2">Exclusive Offer for {html.escape(server_name)} Staff</h1>
+            <p class="text-xl text-gray-400">As a staff member of ServerCV's partnered servers, you are eligible for free Premium access.</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Free Plan -->
+            <div class="glass p-8 rounded-2xl border-2 border-gray-700 flex flex-col opacity-50">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-white mb-2">Free</h2>
+                    <div class="text-4xl font-bold text-white">$0</div>
+                    <div class="text-gray-400">Forever</div>
+                </div>
+                <ul class="space-y-4 mb-8 flex-1">
+                     <li class="flex items-center text-gray-300">
+                        <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Up to {EXP_LIMIT_FREE} Experiences
+                    </li>
+                    <li class="flex items-center text-gray-300">
+                        <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Basic User and Server Profiles
+                    </li>
+                    <li class="flex items-center text-gray-300">
+                        <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        {DESC_LIMIT_FREE:,} Character Description Limit
+                    </li>
+                    <li class="flex items-center text-gray-300">
+                        <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        {SOCIAL_LIMIT_FREE} Social Links
+                    </li>
+                </ul>
+                 <div class="mt-auto">
+                    <button class="w-full bg-gray-700 text-gray-300 font-semibold py-3 px-6 rounded-lg cursor-default">Standard</button>
+                </div>
+            </div>
+
+            <!-- Premium Plan -->
+            <div class="glass p-8 rounded-2xl border-2 border-indigo-500 relative flex flex-col">
+                <div class="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">YOUR GIFT</div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-white mb-2">Premium <span title="Verified Premium Member"><svg class="w-6 h-6 text-yellow-500 inline-block align-text-bottom" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></span></h2>
+                    <div class="text-4xl font-bold text-white">$0</div>
+                    <div class="text-indigo-300">Free for you <small class="text-gray-400"> (normally ${premium_price})</small></div>
+                </div>
+                <ul class="space-y-4 mb-8 flex-1">
+                    <li class="flex items-center text-white">
+                        <svg class="w-5 h-5 text-indigo-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Unlimited Experiences
+                    </li>
+                    <li class="flex items-center text-white">
+                        <svg class="w-5 h-5 text-indigo-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        User Vanity URL
+                    </li>
+                    <li class="flex items-center text-white">
+                        <svg class="w-5 h-5 text-indigo-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Premium Profile Badge
+                    </li>
+                    <li class="flex items-center text-white">
+                        <svg class="w-5 h-5 text-indigo-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Pin Experiences
+                    </li>
+                    <li class="flex items-center text-white">
+                        <svg class="w-5 h-5 text-indigo-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        {DESC_LIMIT_PREMIUM:,} Character Description Limit
+                    </li>
+                    <li class="flex items-center text-white">
+                        <svg class="w-5 h-5 text-indigo-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        {SOCIAL_LIMIT_PREMIUM} Social Links
+                    </li>
+                    <li class="flex items-center text-white">
+                        <svg class="w-5 h-5 text-indigo-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Server Vanity URL for servers you own
+                    </li>
+                </ul>
+                <div class="mt-auto" id="redeem-container">
+                    <!-- Redeem Button -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const isPremium = {str(is_premium).lower()};
+        const csrfToken = "{get_csrf_token()}";
+        const serverId = "{server_id}";
+        
+        const redeemContainer = document.getElementById('redeem-container');
+        
+        if (isPremium) {{
+            redeemContainer.innerHTML = '<div class="w-full bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-center">Plan Active</div>';
+        }} else {{
+            redeemContainer.innerHTML = `<button onclick="redeemPremium()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-lg">Redeem Free Premium</button>`;
+        }}
+        
+        function redeemPremium() {{
+            const btn = redeemContainer.querySelector('button');
+            btn.disabled = true;
+            btn.style.cursor = 'not-allowed';
+            btn.style.opacity = '0.6';
+            btn.style.backgroundColor = 'gray';
+            btn.innerHTML = 'Processing...';
+            
+            fetch('/api/premium/redeem', {{
+                method: 'POST',
+                headers: {{ 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }},
+                body: JSON.stringify({{ server_id: serverId }})
+            }}).then(response => response.json()).then(data => {{
+                if (data.success) {{
+                    redeemContainer.innerHTML = '<div class="w-full bg-green-600 text-white font-semibold py-3 px-6 rounded-lg text-center">Plan Active</div>';
+                }} else {{
+                    alert(data.error || 'Redemption failed.');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Redeem Free Premium';
+                }}
+            }}).catch(err => {{
+                console.error(err);
+                alert('An error occurred.');
+                btn.disabled = false;
+                btn.innerHTML = 'Redeem Free Premium';
+            }});
+        }}
+    </script>
+    """
+    
+    return wrap_page(f"Premium Offer - {server_name}", content, nav_links=[("/dashboard", "Dashboard", ""), ("/settings", "Settings", ""), ("/premium", "Premium", "text-white bg-gray-800"), ("/logout", "Logout", "")])
+
+@dashboard.route("/api/premium/redeem", methods=["POST"])
+@limiter.limit("5 per minute")
+def redeem_premium():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    data = request.get_json()
+    server_id = data.get("server_id")
+    
+    if not server_id or server_id not in ALLOWED_PREMIUM_SERVERS:
+        return jsonify({"error": "Invalid server ID"}), 400
+        
+    user_id = session["user_id"]
+    discord_token = session.get("discord_token")
+    
+    role = get_user_role_in_server(user_id, server_id, discord_token)
+    if not role or role not in ["Server Owner", "Administrator", "Moderator"]:
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    try:
+        ref = db.reference(f"Dashboard Users/{user_id}")
+        ref.update({
+            "premium": True,
+            "premium_since": int(time()),
+            "premium_source": f"server_redemption_{server_id}"
+        })
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Redemption error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @dashboard.route("/experience/<exp_id>")
 @limiter.limit("20 per minute")
